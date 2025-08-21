@@ -7,7 +7,7 @@ namespace Module.MyMath
         public static void Main(string[] args)
         {
             Console.WriteLine("----Start----");
-            int max = 1000000;
+            int max = 10000;
             int[] result = PrimeNumber(max);
             for (int i = 0; i < result.Length; i++)
             {

@@ -141,6 +141,7 @@ echo 🛠 Adding test.cs
 (
 echo using System;
 echo using Xunit;
+echo using System.Diagnostics;
 echo using %MODULE_NAME%;
 echo.
 echo namespace %MODULE_NAME%.Tests
@@ -150,8 +151,11 @@ echo     {
 echo         [Fact]
 echo         public void RunTest()
 echo         {
+echo             var sw = Stopwatch.StartNew();
 echo             %CLASS_NAME%.Main(Array.Empty^<string^>^());
+echo             sw.Stop();
 echo             Assert.True(true); // 示例测试
+echo             Console.WriteLine($"Time: {sw.ElapsedMilliseconds} ms");
 echo         }
 echo     }
 echo }
