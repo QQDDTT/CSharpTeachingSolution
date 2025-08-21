@@ -1,9 +1,8 @@
 using System;
 using System.Collections;
-using System.Collections.Specialized;
-namespace Module.Math
+namespace Module.MyMath
 {
-    public class Math
+    public class MyMath
     {
         public static void Main(string[] args)
         {
@@ -15,9 +14,7 @@ namespace Module.Math
                 Console.WriteLine(result[i]);
             }
             Console.WriteLine("----End----");
-
         }
-
         private static int[] PrimeNumber(int max)
         {
             int min = 2;
@@ -26,7 +23,8 @@ namespace Module.Math
             for (int i = min; i <= max; i++)
             {
                 bool isPrime = true;
-                for (int j = min; j < i; j++)
+                double sqrt = Math.Sqrt(i);
+                for (int j = min; j <= sqrt; j++)
                 {
                     if (i % j == 0)
                     {

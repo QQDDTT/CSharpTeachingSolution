@@ -5,7 +5,10 @@ namespace Module.Hello
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("Hello from Module.Hello module!");
+            string hello = "Hello";
+            string world = "World";
+            int i = 1;
+            Console.WriteLine(hello + world + i);
         }
     }
 }
