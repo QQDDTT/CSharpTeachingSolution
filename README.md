@@ -107,3 +107,31 @@ dotnet publish <项目路径> -c [Debug | Release] -o <输出目录>
 ```bash
 dotnet test <项目路径> -c [Debug | Release]
 ```
+
+### 模块创建脚本
+
+- Linux
+
+```bash
+chmod +x create_module.sh
+./create_module.sh <module_name>
+```
+
+- Windows
+
+```powershell
+.\create_module.ps1 <module_name>
+```
+
+- 如果权限不够
+
+```poweshell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+- Mac
+
+```bash
+chmod +x create_module.sh
+./create_module.sh <module_name>
+```
