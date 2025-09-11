@@ -27,6 +27,11 @@ if "%CUSTOM_MAIN%"=="" (
 )
 
 REM ------------------------------
+REM 首字母大写
+REM ------------------------------
+for /f %%C in ('powershell -Command "[string]'%CUSTOM_MAIN%'.Substring(0,2).ToUpper() + '%CUSTOM_MAIN%'.Substring(1)" do set CLASS_NAME=%%C)
+
+REM ------------------------------
 REM 创建模块目录
 REM ------------------------------
 echo 📂 Creating module directory: %MODULE_NAME%
@@ -44,35 +49,6 @@ REM ------------------------------
 echo 🛠 Creating %PROJECT_TYPE% project: %MODULE_NAME%
 
 set CS_PROJ=%MODULE_NAME%.csproj
-
-REM 首字母大写
-set CLASS_NAME=%CUSTOM_MAIN:~0,1%
-set CLASS_NAME=%CLASS_NAME:A=a%
-set CLASS_NAME=%CLASS_NAME:B=b%
-set CLASS_NAME=%CLASS_NAME:C=c%
-set CLASS_NAME=%CLASS_NAME:D=d%
-set CLASS_NAME=%CLASS_NAME:E=e%
-set CLASS_NAME=%CLASS_NAME:F=f%
-set CLASS_NAME=%CLASS_NAME:G=g%
-set CLASS_NAME=%CLASS_NAME:H=h%
-set CLASS_NAME=%CLASS_NAME:I=i%
-set CLASS_NAME=%CLASS_NAME:J=j%
-set CLASS_NAME=%CLASS_NAME:K=k%
-set CLASS_NAME=%CLASS_NAME:L=l%
-set CLASS_NAME=%CLASS_NAME:M=m%
-set CLASS_NAME=%CLASS_NAME:N=n%
-set CLASS_NAME=%CLASS_NAME:O=o%
-set CLASS_NAME=%CLASS_NAME:P=p%
-set CLASS_NAME=%CLASS_NAME:Q=q%
-set CLASS_NAME=%CLASS_NAME:R=r%
-set CLASS_NAME=%CLASS_NAME:S=s%
-set CLASS_NAME=%CLASS_NAME:T=t%
-set CLASS_NAME=%CLASS_NAME:U=u%
-set CLASS_NAME=%CLASS_NAME:V=v%
-set CLASS_NAME=%CLASS_NAME:W=w%
-set CLASS_NAME=%CLASS_NAME:X=x%
-set CLASS_NAME=%CLASS_NAME:Y=y%
-set CLASS_NAME=%CLASS_NAME:Z=z%
 
 set CLASS_NAME=%CLASS_NAME%%CUSTOM_MAIN:~1%
 
