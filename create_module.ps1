@@ -27,7 +27,8 @@ if ([string]::IsNullOrWhiteSpace($CUSTOM_MAIN)) {
 # ------------------------------
 # 首字母大写
 # ------------------------------
-$CLASS_NAME = ( $CUSTOM_MAIN.Substring(0,1).ToUpper() + $CUSTOM_MAIN.Substring(1) )
+$MODULE_NAME = ( $MODULE_NAME.Substring(0,1).ToUpper() + $MODULE_NAME.Substring(1) )
+$CUSTOM_MAIN = ( $CUSTOM_MAIN.Substring(0,1).ToUpper() + $CUSTOM_MAIN.Substring(1) )
 
 # ------------------------------
 # 创建模块目录
