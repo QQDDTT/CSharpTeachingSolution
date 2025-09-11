@@ -25,10 +25,18 @@ if ([string]::IsNullOrWhiteSpace($CUSTOM_MAIN)) {
 }
 
 # ------------------------------
-# 首字母大写
+# 首字母大写（只处理最后一段）
 # ------------------------------
-$MODULE_NAME = ( $MODULE_NAME.Substring(0,1).ToUpper() + $MODULE_NAME.Substring(1) )
-$CUSTOM_MAIN = ( $CUSTOM_MAIN.Substring(0,1).ToUpper() + $CUSTOM_MAIN.Substring(1) )
+$parts = $MODULE_NAME -split '\.'
+$last = $parts[-1]
+$last = $last.Substring(0,1).ToUpper() + $last.Substring(1)
+$parts[-1] = $last
+$MODULE_NAME = ($parts -join '.')
+
+$CUSTOM_MAIN = $CUSTOM_MAIN.Substring(0,1).ToUpper() + $CUSTOM_MAIN.Substring(1)
+
+# 类名和文件名保持一致
+$CLASS_NAME = $CUSTOM_MAIN
 
 # ------------------------------
 # 创建模块目录
@@ -48,7 +56,6 @@ Set-Location $MODULE_NAME
 Write-Host "🛠 Creating $PROJECT_TYPE project: $MODULE_NAME"
 
 $CS_PROJ = "$MODULE_NAME.csproj"
-$CLASS_NAME = $CLASS_NAME + $CUSTOM_MAIN.Substring(1)
 
 @"
 <Project Sdk="Microsoft.NET.Sdk">
