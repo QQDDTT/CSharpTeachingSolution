@@ -62,7 +62,7 @@ $CLASS_NAME = $CLASS_NAME + $CUSTOM_MAIN.Substring(1)
     <StartupObject>$MODULE_NAME.$CLASS_NAME</StartupObject>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+  <PropertyGroup Condition=" '`$(Configuration)' == 'Debug' ">
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
