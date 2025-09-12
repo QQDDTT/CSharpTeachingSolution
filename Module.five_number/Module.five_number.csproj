@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Module.five_number</AssemblyName>
+    <OutputPath>build/</OutputPath>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <StartupObject>Module.five_number.Five_number</StartupObject>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '' == 'Debug' ">
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <!-- 包含主代码和测试代码 -->
+  <ItemGroup>
+    <Compile Include="src\**\*.cs" />
+    <Compile Include="test\**\*.cs" />
+  </ItemGroup>
+
+  <!-- 使用 xUnit 测试框架 -->
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.8.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+  </ItemGroup>
+
+</Project>
