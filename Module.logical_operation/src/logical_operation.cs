@@ -12,10 +12,9 @@ namespace Module.logical_operation
     {
         public static void Main(string[] args)
         {
-            ExpressionBuilder builder = new ExpressionBuilder(3, 3, false);
+            ExpressionBuilder builder = new ExpressionBuilder(5, 3, false);
             builder.Generate();
             Console.WriteLine("变量: " + builder.GetVariableString());
-            Console.Read();
             Console.WriteLine("表达式: " + builder.GetExpressionString());
             Console.Read();
             Console.WriteLine("结果: " + builder.Result);
@@ -187,10 +186,13 @@ namespace Module.logical_operation
             return sb.ToString().TrimEnd(',', ' ');
         }
 
+        // ===== 生成不含关系表达式的逻辑表达式 =====
         private static String GenerateWithoutRalationalOperators(string[] vars, Random random)
         {
             StringBuilder exprBuilder = new StringBuilder();
             int openParens = 0;
+            int leftBracketProb = 0;
+            int rightBracketProb = 0;
             for (int i = 0; i < vars.Length; i++)
             {
                 if (i > 0)
@@ -202,7 +204,8 @@ namespace Module.logical_operation
                 string varName = vars[i];
 
                 // 随机决定是否加括号
-                bool addParen = random.Next(100) < 30; // 30% 概率加括号
+                leftBracketProb = i < vars.Length ? 50 / (openParens + 1) : 0; // 括号越多，概率越小
+                bool addParen = random.Next(100) < leftBracketProb;
                 if (addParen)
                 {
                     exprBuilder.Append("(");
@@ -216,10 +219,15 @@ namespace Module.logical_operation
                 exprBuilder.Append(varName);
 
                 // 随机决定是否在这里关闭括号（但前提是有未闭合的括号）
-                if (openParens > 0 && random.Next(100) < 50)
+                if (openParens > 0)
                 {
-                    exprBuilder.Append(")");
-                    openParens--;
+                    rightBracketProb += 30;
+                    if (!addParen && random.Next(100) < rightBracketProb)
+                    {
+                        exprBuilder.Append(")");
+                        openParens--;
+                        rightBracketProb = 0; // 重置右括号概率
+                    }
                 }
             }
 
