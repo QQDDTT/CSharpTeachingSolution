@@ -12,7 +12,7 @@ namespace Module.logical_operation
     {
         public static void Main(string[] args)
         {
-            ExpressionBuilder builder = new ExpressionBuilder(5, 3, false);
+            ExpressionBuilder builder = new ExpressionBuilder(8, 4, true);
             builder.Generate();
             Console.WriteLine("变量: " + builder.GetVariableString());
             Console.WriteLine("表达式: " + builder.GetExpressionString());
@@ -254,7 +254,8 @@ namespace Module.logical_operation
                 }
                 while (right == left);
                 string op = ops[random.Next(ops.Length)];
-                expr = expr.Replace(BOOL_ECPR, $"({left} {op} {right})", StringComparison.Ordinal);
+                int index = expr.IndexOf(BOOL_ECPR);
+                expr = expr.Substring(0, index) + $"({left} {op} {right})" + expr.Substring(index + BOOL_ECPR.Length);
             }
             return expr;
         }
