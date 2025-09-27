@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build MainApp",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "dotnet build ${workspaceFolder}/MainApp/MainApp.csproj -c Debug"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build All Modules",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "for dir in Module.*; do echo \"🔨 Building $dir\"; dotnet build \"$dir/$dir.csproj\" -c Debug; done"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Run MainApp",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "dotnet run --project ${workspaceFolder}/MainApp/MainApp.csproj -c Debug"
+            ],
+            "dependsOn": ["Build All Modules", "Build MainApp"],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Run MainApp without Build",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "dotnet run --project ${workspaceFolder}/MainApp/MainApp.csproj -c Debug"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ]
+}

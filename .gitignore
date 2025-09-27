@@ -1,9 +1,5 @@
-/.vscode
-
 */build/
 
 */obj/
 
 */*.sln
-
-.gitignore

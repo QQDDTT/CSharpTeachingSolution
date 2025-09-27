@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Launch (console) quikly start",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "Run MainApp without Build",
+      "program": "${workspaceFolder}/MainApp/bin/Debug/net8.0/MainApp.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MainApp",
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": ".NET Core Launch (console)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "Run MainApp",
+      "program": "${workspaceFolder}/MainApp/bin/Debug/net8.0/MainApp.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MainApp",
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": ".NET Core Attach",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ]
+}
