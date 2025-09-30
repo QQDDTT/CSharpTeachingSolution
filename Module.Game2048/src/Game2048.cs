@@ -202,22 +202,24 @@ namespace Module.Game2048
         {
             var sb = new System.Text.StringBuilder();
 
+            int cellWidth = 4; // 每格宽度固定为4
+            string line = "+" + string.Concat(Enumerable.Repeat(new string('-', cellWidth) + "+", (int)colCount));
+
             for (int row = 0; row < rowCount; row++)
             {
-                sb.AppendLine("+----+----+----+----+"); // 表头线
+                sb.AppendLine(line); // 行头线
+
                 for (int col = 0; col < colCount; col++)
                 {
                     sb.Append("|");
                     uint val = form[row * colCount + col];
-                    if (val == 0)
-                        sb.Append("    "); // 空格填充
-                    else
-                        sb.Append(val.ToString().PadLeft(4)); // 数字右对齐
+                    string str = val == 0 ? new string(' ', cellWidth) : val.ToString().PadLeft(cellWidth);
+                    sb.Append(str);
                 }
-                sb.AppendLine("|"); // 每行结束
+                sb.AppendLine("|"); // 行尾
             }
-            sb.AppendLine("+----+----+----+----+"); // 底线
 
+            sb.AppendLine(line); // 底线
             return sb.ToString();
         }
 

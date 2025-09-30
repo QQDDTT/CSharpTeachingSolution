@@ -22,20 +22,20 @@
     <body>
         <h1>2048 (Minimal API)</h1>
         <div>
-            <button id=""btn-restart"">Restart</button>
-            <button id=""btn-refresh"">Refresh</button>
+            <button id="btn-restart">Restart</button>
+            <button id="btn-refresh">Refresh</button>
         </div>
 
-        <div id=""board""></div>
+        <div id="board"></div>
 
-        <div class=""controls"">
-            <button data-dir=""up"">↑ Up</button>
-            <button data-dir=""left"">← Left</button>
-            <button data-dir=""right"">→ Right</button>
-            <button data-dir=""down"">↓ Down</button>
+        <div class="controls">
+            <button data-dir="up">↑ Up</button>
+            <button data-dir="left">← Left</button>
+            <button data-dir="right">→ Right</button>
+            <button data-dir="down">↓ Down</button>
         </div>
 
-        <div id=""status"">Status: ready</div>
+        <div id="status">Status: ready</div>
 
         <script>
         (async function(){
@@ -65,32 +65,37 @@
             boardEl.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
             boardEl.innerHTML = '';
             for (let r = 0; r < rows; r++){
-            for (let c = 0; c < cols; c++){
-                const idx = r * cols + c;
-                const val = form[idx] || 0;
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.textContent = val === 0 ? '' : val;
-                // 简单着色
-                const bg = colorFor(val);
-                if (bg) cell.style.background = bg;
-                boardEl.appendChild(cell);
-            }
+                for (let c = 0; c < cols; c++){
+                    const idx = r * cols + c;
+                    const val = form[idx] || 0;
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.textContent = val === 0 ? '' : val;
+                    // 简单着色
+                    const bg = colorFor(val);
+                    if (bg) cell.style.background = bg;
+                    boardEl.appendChild(cell);
+                }
             }
         }
 
         // 简单颜色映射（可扩展）
         function colorFor(v){
             switch(v){
-            case 0: return '#e0e0e0';
-            case 1: return '#f2e7da';
-            case 2: return '#f6d8b6';
-            case 4: return '#f4b183';
-            case 8: return '#f28c3b';
-            case 16: return '#f05a2f';
-            case 32: return '#e43f2b';
-            case 64: return '#d93b3b';
-            default: return '#b48ead';
+                case 0: return '#e0e0e0';
+                case 1: return '#f2e7da';
+                case 2: return '#f6d8b6';
+                case 4: return '#f4b183';
+                case 8: return '#f28c3b';
+                case 16: return '#f05a2f';
+                case 32: return '#e43f2b';
+                case 64: return '#d93b3b';
+                case 128: return '#c96ad4';
+                case 256: return '#a25ac6';
+                case 512: return '#7b4ab8';
+                case 1024: return '#543aa9';
+                case 2048: return '#2d2a9c';
+                default: return '#1b1b1b'; // 更高阶数字
             }
         }
 
@@ -136,13 +141,16 @@
 
         document.getElementById('btn-refresh').addEventListener('click', loadState);
 
-        // 如果你实现了 restart 接口，可以改成 POST /restart
         document.getElementById('btn-restart').addEventListener('click', async () => {
-            // 这里用简单方法：调用 /state, 如果你在服务器实现 restart，请替换为 POST /restart
-            status.textContent = 'Status: restart (recreate client-side)';
-            // 简单地刷新页面并通知用户
-            await fetch('/state'); // just ping
-            await loadState();
+            try {
+                const res = await fetch('/restart', { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to restart');
+                const data = await res.json();
+                render(data); // 直接用服务端返回的新棋盘渲染
+                status.textContent = 'Status: restarted';
+            } catch (e) {
+                status.textContent = 'Status: ' + e;
+            }
         });
 
         // 首次加载

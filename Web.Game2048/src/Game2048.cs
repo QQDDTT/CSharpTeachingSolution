@@ -18,9 +18,15 @@ namespace Web.Game2048
             string baseDir = AppContext.BaseDirectory;
             string relativePath = "src/home.html";
             string htmlPath = Path.GetFullPath(Path.Combine(baseDir, "..", "..", relativePath));
-            var game = new Table2048(4, 4);
+            var game = new Table2048(6, 6);
             app.MapGet("/", () => LoadHtml(htmlPath));
-            app.MapGet("/state", () => game.ToJson());
+            app.MapGet("/state", () => game.ToJsonObject());
+            app.MapPost("/restart", () =>
+            {
+                game.Start();
+                Console.WriteLine(game.ToString());
+                return Results.Ok(game.ToJsonObject());
+            });
             app.MapPost("/move/{dir}", (string dir) =>
             {
                 switch (dir.ToLower())
@@ -31,7 +37,9 @@ namespace Web.Game2048
                     case "down": game.Down(); break;
                     default: return Results.BadRequest("Invalid direction, use left/right/up/down");
                 }
-                return Results.Ok(game.ToJson());
+                game.Next();
+                Console.WriteLine(game.ToString());
+                return Results.Ok(game.ToJsonObject());
             });
             app.Run();
         }
@@ -67,6 +75,7 @@ namespace Web.Game2048
         }
         public void Start()
         {
+            this.form = new uint[rowCount * colCount];
             HashSet<int> positionList = new HashSet<int>();
             while (positionList.Count < 3)
             {
@@ -207,37 +216,35 @@ namespace Web.Game2048
         {
             var sb = new System.Text.StringBuilder();
 
+            int cellWidth = 4; // 每格宽度固定为4
+            string line = "+" + string.Concat(Enumerable.Repeat(new string('-', cellWidth) + "+", (int)colCount));
+
             for (int row = 0; row < rowCount; row++)
             {
-                sb.AppendLine("+----+----+----+----+"); // 表头线
+                sb.AppendLine(line); // 行头线
+
                 for (int col = 0; col < colCount; col++)
                 {
                     sb.Append("|");
                     uint val = form[row * colCount + col];
-                    if (val == 0)
-                        sb.Append("    "); // 空格填充
-                    else
-                        sb.Append(val.ToString().PadLeft(4)); // 数字右对齐
+                    string str = val == 0 ? new string(' ', cellWidth) : val.ToString().PadLeft(cellWidth);
+                    sb.Append(str);
                 }
-                sb.AppendLine("|"); // 每行结束
+                sb.AppendLine("|"); // 行尾
             }
-            sb.AppendLine("+----+----+----+----+"); // 底线
 
+            sb.AppendLine(line); // 底线
             return sb.ToString();
         }
 
-        public string ToJson()
+        public object ToJsonObject()
         {
-            var data = new
+            return new
             {
                 RowCount = rowCount,
                 ColCount = colCount,
                 Form = form
             };
-
-            return JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
         }
-
-
     }
 }
