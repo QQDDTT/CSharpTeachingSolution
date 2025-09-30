@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>2048 - Minimal API</title>
+        <style>
+            body { font-family: Arial, Helvetica, sans-serif; padding: 20px; background: #f7f7f7; }
+            h1 { margin-bottom: 10px; }
+            #board { display: grid; gap: 8px; margin: 12px 0; }
+            .cell {
+                width: 80px; height: 80px; display:flex; align-items:center; justify-content:center;
+                background: #e0e0e0; border-radius: 6px; font-weight: 700; font-size: 20px;
+                box-shadow: inset 0 -4px rgba(0,0,0,0.05);
+            }
+            .controls { margin-top: 12px; }
+            button { padding: 8px 12px; margin-right: 6px; font-size:14px; }
+            #status { margin-top: 12px; color: #333; }
+            .row { display: contents; }
+        </style>
+    </head>
+    <body>
+        <h1>2048 (Minimal API)</h1>
+        <div>
+            <button id=""btn-restart"">Restart</button>
+            <button id=""btn-refresh"">Refresh</button>
+        </div>
+
+        <div id=""board""></div>
+
+        <div class=""controls"">
+            <button data-dir=""up"">↑ Up</button>
+            <button data-dir=""left"">← Left</button>
+            <button data-dir=""right"">→ Right</button>
+            <button data-dir=""down"">↓ Down</button>
+        </div>
+
+        <div id=""status"">Status: ready</div>
+
+        <script>
+        (async function(){
+        const boardEl = document.getElementById('board');
+        const status = document.getElementById('status');
+
+        // 读取并渲染棋盘（使用 /state）
+        async function loadState(){
+            status.textContent = 'Status: loading...';
+            try {
+            const res = await fetch('/state');
+            if (!res.ok) throw new Error('Failed to fetch state: ' + res.status);
+            const data = await res.json();
+            render(data);
+            status.textContent = 'Status: loaded';
+            } catch (e) {
+            status.textContent = 'Status: ' + e;
+            }
+        }
+
+        // 渲染函数：基于 RowCount/ColCount/Form 数组
+        function render(data){
+            const rows = data.RowCount || data.rowCount || 4;
+            const cols = data.ColCount || data.colCount || 4;
+            const form = data.Form || data.form || [];
+
+            boardEl.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+            boardEl.innerHTML = '';
+            for (let r = 0; r < rows; r++){
+            for (let c = 0; c < cols; c++){
+                const idx = r * cols + c;
+                const val = form[idx] || 0;
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.textContent = val === 0 ? '' : val;
+                // 简单着色
+                const bg = colorFor(val);
+                if (bg) cell.style.background = bg;
+                boardEl.appendChild(cell);
+            }
+            }
+        }
+
+        // 简单颜色映射（可扩展）
+        function colorFor(v){
+            switch(v){
+            case 0: return '#e0e0e0';
+            case 1: return '#f2e7da';
+            case 2: return '#f6d8b6';
+            case 4: return '#f4b183';
+            case 8: return '#f28c3b';
+            case 16: return '#f05a2f';
+            case 32: return '#e43f2b';
+            case 64: return '#d93b3b';
+            default: return '#b48ead';
+            }
+        }
+
+        // 发送移动请求并刷新
+        async function move(dir){
+            status.textContent = 'Status: moving ' + dir + '...';
+            try {
+            const res = await fetch('/move/' + dir, { method: 'POST' });
+            if (!res.ok){
+                const text = await res.text();
+                throw new Error(text || ('HTTP ' + res.status));
+            }
+            const result = await res.json();
+            // 如果服务端返回新的状态 JSON（ToJson），直接渲染它
+            if (result && (result.RowCount || result.rowCount)){
+                render(result);
+            } else {
+                // 否则重新 load state
+                await loadState();
+            }
+            status.textContent = 'Status: moved ' + dir;
+            } catch (e) {
+            status.textContent = 'Status: ' + e;
+            }
+        }
+
+        // 键盘支持
+        window.addEventListener('keydown', (ev) => {
+            switch(ev.key){
+            case 'ArrowLeft': move('left'); break;
+            case 'ArrowRight': move('right'); break;
+            case 'ArrowUp': move('up'); break;
+            case 'ArrowDown': move('down'); break;
+            }
+        });
+
+        // 按钮绑定
+        document.querySelectorAll('button[data-dir]').forEach(b => {
+            b.addEventListener('click', () => {
+            move(b.getAttribute('data-dir'));
+            });
+        });
+
+        document.getElementById('btn-refresh').addEventListener('click', loadState);
+
+        // 如果你实现了 restart 接口，可以改成 POST /restart
+        document.getElementById('btn-restart').addEventListener('click', async () => {
+            // 这里用简单方法：调用 /state, 如果你在服务器实现 restart，请替换为 POST /restart
+            status.textContent = 'Status: restart (recreate client-side)';
+            // 简单地刷新页面并通知用户
+            await fetch('/state'); // just ping
+            await loadState();
+        });
+
+        // 首次加载
+        await loadState();
+        })();
+        </script>
+    </body>
+</html>

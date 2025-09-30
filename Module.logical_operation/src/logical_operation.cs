@@ -12,7 +12,7 @@ namespace Module.logical_operation
     {
         public static void Main(string[] args)
         {
-            ExpressionBuilder builder = new ExpressionBuilder(8, 4, true);
+            ExpressionBuilder builder = new ExpressionBuilder(8, 8, true);
             builder.Generate();
             Console.WriteLine("变量: " + builder.GetVariableString());
             Console.WriteLine("表达式: " + builder.GetExpressionString());
@@ -39,8 +39,10 @@ namespace Module.logical_operation
             if (variableCount < 2) throw new ArgumentException("变量个数必须 >= 2");
             if (expressionLength < 2) throw new ArgumentException("算式长度必须 >= 2");
             if (variableCount > expressionLength) throw new ArgumentException("变量个数不能大于算式长度");
-            if (useRelOps && (expressionLength % 2 != variableCount % 2))
-                throw new ArgumentException("使用关系运算符时，算式长度与变量个数必须同奇偶性");
+            if (useRelOps)
+            {
+                if (expressionLength % 2 == 1 && variableCount <= 2) throw new ArgumentException("包含关系表达式时 算式长度为奇数时 变量个数必须大于2");
+            }
             ExpressionLength = expressionLength;
             VariableCount = variableCount;
             UseRelationalOperators = useRelOps;
@@ -58,17 +60,39 @@ namespace Module.logical_operation
         // ===== 生成表达式 =====
         public void Generate()
         {
+            // Console.WriteLine("Generate start");
+
             Variables.Clear();
             if (UseRelationalOperators)
             {
-                int boolExprMaxCount = ExpressionLength / 2;
-                int boolExprRelCount = random.Next(1, boolExprMaxCount);
-                int boolPlaceholdersRelCount = ExpressionLength - boolExprRelCount;
-                int boolValMaxCount = ExpressionLength - boolPlaceholdersRelCount;
-                int boolVarCount = boolValMaxCount == 0 ? 0 : random.Next(1, boolValMaxCount);
-                int intVarCount = VariableCount - boolVarCount;
+                // Console.WriteLine("Is ralation operator");
+                // bool型 变量数
+                int boolVarCount = 0;
+
+                // int型 变量数
+                int intVarCount = 2;
+
+                // 逻辑运算式（逻辑骨架）的长度
+                int boolExprLength = ExpressionLength / 2;
+
+                if (VariableCount > 2)
+                {
+                    // bool数
+                    int boolVarNum = random.Next(ExpressionLength % 2, VariableCount - 2);
+
+                    // int数
+                    int intVarNum = ExpressionLength - boolVarNum;
+
+                    intVarCount = random.Next(2, VariableCount - (ExpressionLength % 2));
+
+                    boolVarCount = VariableCount - intVarCount;
+
+                    boolExprLength = random.Next(boolVarCount, ExpressionLength - (intVarCount + 1) / 2);
+                }
+
                 // Console.WriteLine($"表达式长度: {ExpressionLength}, 变量数: {VariableCount}");
-                // Console.WriteLine($"布尔变量数: {boolVarCount}, 整型变量数: {intVarCount}, 关系表达式数: {boolPlaceholdersRelCount}");
+                // Console.WriteLine($"布尔变量数: {boolVarCount}, 整型变量数: {intVarCount}, 关系表达式数: {boolExprLength}");
+
                 for (int i = 0; i < VariableCount; i++)
                 {
                     char varName = (char)('A' + i);
@@ -83,17 +107,19 @@ namespace Module.logical_operation
                     }
                 }
 
+                // Console.WriteLine("Variables complished :" + Variables.ToString());
+
                 // 生成布尔占位表达式（逻辑骨架）
-                string[] boolPlaceholders = new string[boolPlaceholdersRelCount];
+                string[] boolPlaceholders = new string[boolExprLength];
 
                 // 随机选择哪些位置放 BOOL_EXPR
                 HashSet<int> exprPositions = new HashSet<int>();
-                while (exprPositions.Count < boolExprRelCount)
+                while (exprPositions.Count < ExpressionLength - boolExprLength)
                 {
-                    int pos = random.Next(0, boolPlaceholdersRelCount - 1); 
+                    int pos = random.Next(0, boolExprLength); 
                     exprPositions.Add(pos);
                 }
-                for (int i = 0; i < boolPlaceholdersRelCount; i++)
+                for (int i = 0; i < boolExprLength; i++)
                 {
                     if (exprPositions.Contains(i))
                     {
@@ -117,6 +143,7 @@ namespace Module.logical_operation
                 }
                 string skeleton = GenerateWithoutRalationalOperators(boolPlaceholders, random);
                 // Console.WriteLine("逻辑骨架: " + skeleton);
+
                 // 替换占位符为关系表达式
                 string[] intVars = new string[intVarCount];
                 for (int i = 0; i < intVarCount; i++)
@@ -127,6 +154,7 @@ namespace Module.logical_operation
             }
             else
             {
+                // Console.WriteLine("Is simple logical operator");
                 string[] vars = new string[ExpressionLength];
                 // 纯逻辑运算：变量是 bool
                 for (int i = 0; i < VariableCount; i++)
@@ -204,7 +232,7 @@ namespace Module.logical_operation
                 string varName = vars[i];
 
                 // 随机决定是否加括号
-                leftBracketProb = i < vars.Length ? 50 / (openParens + 1) : 0; // 括号越多，概率越小
+                leftBracketProb = i < vars.Length - 1 ? 50 / (openParens + 1) : 0; // 括号越多，概率越小
                 bool addParen = random.Next(100) < leftBracketProb;
                 if (addParen)
                 {
@@ -255,7 +283,7 @@ namespace Module.logical_operation
                 while (right == left);
                 string op = ops[random.Next(ops.Length)];
                 int index = expr.IndexOf(BOOL_ECPR);
-                expr = expr.Substring(0, index) + $"({left} {op} {right})" + expr.Substring(index + BOOL_ECPR.Length);
+                expr = expr.Substring(0, index) + $"{left} {op} {right}" + expr.Substring(index + BOOL_ECPR.Length);
             }
             return expr;
         }
@@ -272,6 +300,11 @@ namespace Module.logical_operation
             Name = name;
             VarType = type;
             Value = value;
+        }
+
+        public override string ToString()
+        {
+            return $"Name:{Name}, Type:{VarType}, Value:{Value}";
         }
     }
     public class VariableTable : IEnumerable<Variable>
@@ -316,7 +349,7 @@ namespace Module.logical_operation
         {
             return string.Join(", ", variables);
         }
-            // ===== 实现 IEnumerable<Variable> =====
+        // ===== 实现 IEnumerable<Variable> =====
         public IEnumerator<Variable> GetEnumerator()
         {
             return variables.GetEnumerator();
