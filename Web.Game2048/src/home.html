@@ -21,9 +21,11 @@
     </head>
     <body>
         <h1>2048 (Minimal API)</h1>
-        <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
             <button id="btn-restart">Restart</button>
             <button id="btn-refresh">Refresh</button>
+            <p>Row</p><input id="row" type="number"/>
+            <p>Colume</p><input id="col" type="number"/>
         </div>
 
         <div id="board"></div>
@@ -40,7 +42,9 @@
         <script>
         (async function(){
         const boardEl = document.getElementById('board');
-        const status = document.getElementById('status');
+        const statusEl = document.getElementById('status');
+        const rowEl = document.getElementById("row");
+        const colEl = document.getElementById("col");
 
         // 读取并渲染棋盘（使用 /state）
         async function loadState(){
@@ -50,9 +54,8 @@
             if (!res.ok) throw new Error('Failed to fetch state: ' + res.status);
             const data = await res.json();
             render(data);
-            status.textContent = 'Status: loaded';
             } catch (e) {
-            status.textContent = 'Status: ' + e;
+            statusEl.textContent = 'Status: ' + e;
             }
         }
 
@@ -61,6 +64,7 @@
             const rows = data.RowCount || data.rowCount || 4;
             const cols = data.ColCount || data.colCount || 4;
             const form = data.Form || data.form || [];
+            const status = data.Status || data.status || "";
 
             boardEl.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
             boardEl.innerHTML = '';
@@ -77,6 +81,7 @@
                     boardEl.appendChild(cell);
                 }
             }
+            statusEl.textContent = 'Status:' + status;
         }
 
         // 简单颜色映射（可扩展）
@@ -116,9 +121,8 @@
                 // 否则重新 load state
                 await loadState();
             }
-            status.textContent = 'Status: moved ' + dir;
             } catch (e) {
-            status.textContent = 'Status: ' + e;
+            statusEl.textContent = 'Status: ' + e;
             }
         }
 
@@ -143,13 +147,14 @@
 
         document.getElementById('btn-restart').addEventListener('click', async () => {
             try {
-                const res = await fetch('/restart', { method: 'POST' });
+                const row = parseInt(rowEl.value) || 4;
+                const col = parseInt(colEl.value) || 4;
+                const res = await fetch(`/restart?row=${row}&col=${col}`, { method: 'POST' });
                 if (!res.ok) throw new Error('Failed to restart');
                 const data = await res.json();
                 render(data); // 直接用服务端返回的新棋盘渲染
-                status.textContent = 'Status: restarted';
             } catch (e) {
-                status.textContent = 'Status: ' + e;
+                statusEl.textContent = 'Status: ' + e;
             }
         });
 
