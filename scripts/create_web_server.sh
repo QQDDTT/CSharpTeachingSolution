@@ -1,4 +1,8 @@
 #!/bin/bash
+# ================================================================
+# 🌐 Web 模块自动生成脚本
+# 功能：在当前目录中创建一个新的 C# Web 模块项目
+# ================================================================
 
 set -e
 
@@ -12,27 +16,64 @@ CUSTOM_MAIN=$2
 
 if [[ -z "$MODULE_NAME" ]]; then
     echo "Usage: $0 <module_name>"
+    echo "Example: $0 hello 或 $0 Web.Hello"
     exit 1
 fi
 
-if [[ "$MODULE_NAME" != "Web.*"  ]]; then
+# 若模块名未以 'Web.' 开头，则自动补齐
+if [[ ! "$MODULE_NAME" =~ ^Web\. ]]; then
     MODULE_NAME="Web.$MODULE_NAME"
 fi
 
+# --------------------------------------------------
+# 将模块名的每个部分首字母大写
+# 例：web.demo_test → Web.Demo_Test
+# --------------------------------------------------
+function capitalize_each_part() {
+    local input="$1"
+    local result=""
+    IFS='.' read -ra PARTS <<< "$input"
+    for part in "${PARTS[@]}"; do
+        IFS='_' read -ra SUBS <<< "$part"
+        local fixed=""
+        for sub in "${SUBS[@]}"; do
+            fixed+="${sub^}_"
+        done
+        fixed="${fixed%_}"
+        result+="${fixed}."
+    done
+    echo "${result%.}"
+}
+
+MODULE_NAME=$(capitalize_each_part "$MODULE_NAME")
+
+# 若未指定自定义主类名，则取模块名最后一部分
 if [[ -z "$CUSTOM_MAIN" ]]; then
     CUSTOM_MAIN="${MODULE_NAME##*.}"
 fi
 
+CLASS_NAME="${CUSTOM_MAIN^}"
 
 # ------------------------------
 # 创建模块目录
 # ------------------------------
-echo "📂 Creating module directory: $MODULE_NAME"
+# 获取当前脚本所在路径
+CURRENT_DIR=$(pwd)
+# 获取当前文件夹名
+CURRENT_FOLDER_NAME=$(basename "$CURRENT_DIR")
+# 判断当前目录名
+if [ "$CURRENT_FOLDER_NAME" = "CSharpTeachingSolution" ]; then
+    TARGET_PATH="$CURRENT_DIR/$MODULE_NAME"
+else
+    PARENT_DIR=$(dirname "$CURRENT_DIR")
+    TARGET_PATH="$PARENT_DIR/$MODULE_NAME"
+fi
 
-mkdir -p "$MODULE_NAME"
-mkdir -p "$MODULE_NAME/src"
-mkdir -p "$MODULE_NAME/test"
-mkdir -p "$MODULE_NAME/build"
+echo "Creating module directory: $MODULE_NAME"
+
+mkdir -p "$TARGET_PATH/src"
+mkdir -p "$TARGET_PATH/test"
+mkdir -p "$TARGET_PATH/build"
 
 cd "$MODULE_NAME"
 
@@ -42,7 +83,7 @@ cd "$MODULE_NAME"
 echo "🛠 Creating $PROJECT_TYPE project: $MODULE_NAME"
 
 CS_PROJ="$MODULE_NAME.csproj"
-CLASS_NAME="${CUSTOM_MAIN^}"
+
 cat > "$CS_PROJ" <<EOF
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
@@ -63,8 +104,8 @@ cat > "$CS_PROJ" <<EOF
 
   <!-- 包含主代码和测试代码 -->
   <ItemGroup>
-    <Compile Include="src\**\*.cs" />
-    <Compile Include="test\**\*.cs" />
+    <Compile Include="src\\**\\*.cs" />
+    <Compile Include="test\\**\\*.cs" />
   </ItemGroup>
 
   <!-- 使用 xUnit 测试框架 -->
@@ -83,9 +124,9 @@ EOF
 # ------------------------------
 # 添加主代码
 # ------------------------------
-echo "🛠 Adding default module code"
+echo "Adding default module code"
 
-MAIN_PATH="src/$CUSTOM_MAIN.cs"
+MAIN_PATH="src/$CLASS_NAME.cs"
 
 cat > "$MAIN_PATH" <<EOF
 using System;
@@ -93,6 +134,7 @@ using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+
 namespace $MODULE_NAME
 {
     public class $CLASS_NAME
@@ -101,9 +143,11 @@ namespace $MODULE_NAME
         {
             var builder = WebApplication.CreateBuilder(args);
             var app = builder.Build();  
+
             string baseDir = AppContext.BaseDirectory;
             string relativePath = "src/home.html";
             string htmlPath = Path.GetFullPath(Path.Combine(baseDir, "..", "..", relativePath));
+
             app.MapGet("/", () => LoadHtml(htmlPath));
             app.Run();
         }
@@ -125,7 +169,8 @@ EOF
 # ------------------------------
 # 添加网页代码
 # ------------------------------
-echo "🛠 Adding home.html"
+echo "Adding home.html"
+
 cat > "src/home.html" <<EOF
 <!doctype html>
 <html lang="zh-CN">
@@ -142,7 +187,7 @@ EOF
 # ------------------------------
 # 添加基础测试
 # ------------------------------
-echo "🛠 Adding test.cs"
+echo "Adding test.cs"
 
 cat > "test/test.cs" <<EOF
 using System;
@@ -171,6 +216,13 @@ namespace $MODULE_NAME.Tests
 }
 EOF
 
-echo "✅ Module $MODULE_NAME created successfully."
+# ------------------------------
+# 完成提示
+# ------------------------------
+echo "Module $MODULE_NAME created successfully."
+echo "Path: $(pwd)"
 
+# ------------------------------
+# 打开 VS Code
+# ------------------------------
 code .

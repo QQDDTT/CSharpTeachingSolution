@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Core Web Console</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="appContainer">
+    <!-- 工具栏 -->
+    <div id="toolbar">
+        <div class="left-buttons">
+            <button id="consoleBtn" class="tab-btn active" data-tab="consoleTab">Console</button>
+            <button id="editorBtn" class="tab-btn" data-tab="editorTab">Editor</button>
+        </div>
+        <div id="statusBarContainer">
+          <div id="statusBar"></div>
+        </div>
+        <div class="right-buttons">
+            <button id="restartBtn" class="circle-btn">⭮</button>
+            <button id="closeBtn" class="circle-btn">✖</button>
+        </div>
+    </div>
+
+    <!-- 主体 -->
+    <div id="main">
+        <!-- 控制台 -->
+        <div id="consoleTab" class="tab-content active">
+            <div id="consoleOutput"></div>
+            <div id="consoleInputBar">
+                <input id="consoleInput" type="text" placeholder="Input command..." />
+                <button id="sendConsoleBtn">send</button>
+            </div>
+        </div>
+
+        <!-- 编辑器 -->
+        <div id="editorTab" class="tab-content">
+            <div id="editorContainer">
+                <!-- 编辑器侧边栏 -->
+                <div id="editorSidebar">
+                    <select id="projectSelect"></select>
+                    <div id="fileList"></div>
+                </div>
+
+                <!-- 拖动条 -->
+                <div id="dragHandle"></div>
+
+                <!-- 编辑器文本区域 -->
+                <textarea id="editor"></textarea>
+            </div>
+            <div id="editorToolbar">
+                <button id="refreshBtn">refresh</button>
+                <button id="saveBtn">save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗 -->
+<div id="newProjectModal" class="modal">
+    <div class="modal-content">
+        <h3>Create new project</h3>
+        <select id="projectType">
+            <option value="web">Web</option>
+            <option value="console">Console</option>
+        </select>
+        <input id="projectName" placeholder="Project name" />
+        <div class="modal-actions">
+            <button id="createProjectBtn">submit</button>
+            <button id="cancelProjectBtn">cancle</button>
+        </div>
+    </div>
+</div>
+
+<div id="newFileModal" class="modal">
+    <div class="modal-content">
+        <h3>Create new file/dir</h3>
+        <select id="fileType">
+            <option value="file">File</option>
+            <option value="dir">Directory</option>
+        </select>
+        <input id="filePath" placeholder="File relativePath" />
+        <div class="modal-actions">
+            <button id="createFileBtn">submit</button>
+            <button id="cancelFileBtn">cancle</button>
+        </div>
+    </div>
+</div>
+
+<!-- 休眠遮罩 -->
+<div id="sleepOverlay">
+    <div class="message">Sleeping...</div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
