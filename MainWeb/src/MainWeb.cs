@@ -530,13 +530,33 @@ namespace MainWeb
                 {
                     CurrentDir = Path.GetRelativePath(RootDir, newDir);
                     running = false;
-                    return ResponseData.Success("Directory changed", new Dictionary<string, string> { ["path"] = CurrentDir});
+                    return ResponseData.Success("Directory changed", new Dictionary<string, string> { ["path"] = CurrentDir });
                 }
                 else
                 {
                     running = false;
                     return ResponseData.Error("Directory does not exist: " + targetDir);
                 }
+            }
+            
+            // 判断操作系统类型
+            string shell;
+            string shellArgs;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                shell = "cmd.exe";
+                shellArgs = "/C " + command;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                shell = "/bin/bash";
+                shellArgs = "-c \"" + command + "\"";
+            }
+            else
+            {
+                running = false;
+                return ResponseData.Error("Unsupported operating system");
             }
 
             Task.Run(() =>
@@ -545,8 +565,8 @@ namespace MainWeb
                 {
                     var psi = new ProcessStartInfo
                     {
-                        FileName = "/bin/bash", // Linux/WSL 环境
-                        Arguments = "-c \"" + command + "\"",
+                        FileName = shell,
+                        Arguments = shellArgs,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
