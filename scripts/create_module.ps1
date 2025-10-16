@@ -13,44 +13,26 @@ $ProjectType = "console"
 $Framework = "net8.0"
 
 # ------------------------------
-# Validate module name
+# Validate and process module name
 # ------------------------------
 if ([string]::IsNullOrWhiteSpace($ModuleName)) {
     Write-Host "Error: ModuleName cannot be empty!" -ForegroundColor Red
     exit 1
 }
 
+# Capitalize first letter of module name
+if ($ModuleName.Length -eq 1) {
+    $ModuleName = $ModuleName.ToUpper()
+} else {
+    $firstChar = $ModuleName.Substring(0, 1).ToUpper()
+    $restChars = $ModuleName.Substring(1).ToLower()
+    $ModuleName = $firstChar + $restChars
+}
+
 # Add Module. prefix if not present
 if ($ModuleName -notmatch '^Module\.') {
     $ModuleName = "Module.$ModuleName"
 }
-
-# Capitalize first letter of each part
-function Capitalize-EachPart($input) {
-    $parts = $input -split '\.'
-    $resultParts = @()
-
-    foreach ($part in $parts) {
-        $subs = $part -split '_'
-        $fixedSubs = @()
-        foreach ($sub in $subs) {
-            if ($sub.Length -gt 0) {
-                if ($sub.Length -eq 1) {
-                    $fixedSubs += $sub.ToUpper()
-                } else {
-                    $firstChar = $sub.Substring(0, 1).ToUpper()
-                    $restChars = $sub.Substring(1).ToLower()
-                    $fixedSubs += ($firstChar + $restChars)
-                }
-            }
-        }
-        $resultParts += ($fixedSubs -join '_')
-    }
-    return ($resultParts -join '.')
-}
-
-# Capitalize module name
-$ModuleName = Capitalize-EachPart $ModuleName
 
 # Determine main class name
 if ([string]::IsNullOrWhiteSpace($CustomMain)) {
