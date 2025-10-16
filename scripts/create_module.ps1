@@ -1,10 +1,11 @@
 # ============================================================
-# create_module.ps1 (Fixed Path Logic Version)
+# create_module.ps1 (Final Fixed Version)
 # ============================================================
 
 param (
+    [Parameter(Mandatory = $true)]
     [string]$ModuleName,
-    [string]$CustomMain
+    [string]$CustomMain = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,18 +13,16 @@ $ProjectType = "console"
 $Framework = "net8.0"
 
 # ------------------------------
-# Validate and normalize module name
+# Validate module name
 # ------------------------------
 if ([string]::IsNullOrWhiteSpace($ModuleName)) {
     Write-Host "Error: ModuleName cannot be empty!" -ForegroundColor Red
     exit 1
 }
+
+# Add Module. prefix if not present
 if ($ModuleName -notmatch '^Module\.') {
     $ModuleName = "Module.$ModuleName"
-}
-
-if ($CustomMain -eq "") {
-    $CustomMain = $ModuleName
 }
 
 # Capitalize first letter of each part
@@ -48,17 +47,23 @@ function Capitalize-EachPart($input) {
     return ($resultParts -join '.')
 }
 
+# Capitalize module name
 $ModuleName = Capitalize-EachPart $ModuleName
 
-if (-not $CustomMain) {
+# Determine main class name
+if ([string]::IsNullOrWhiteSpace($CustomMain)) {
     $CustomMain = ($ModuleName.Split('.')[-1])
 }
 
+# Capitalize class name
 if ($CustomMain.Length -eq 1) {
     $ClassName = $CustomMain.ToUpper()
 } else {
     $ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1, $CustomMain.Length - 1))
 }
+
+Write-Host "Module Name: $ModuleName" -ForegroundColor Cyan
+Write-Host "Class Name: $ClassName" -ForegroundColor Cyan
 
 # ------------------------------
 # Find CSharpTeachingSolution directory
@@ -67,18 +72,16 @@ function Find-SolutionRoot {
     param([string]$StartPath)
     
     $current = $StartPath
-    $maxDepth = 10  # Prevent infinite loop
+    $maxDepth = 10
     $depth = 0
     
     while ($depth -lt $maxDepth) {
         $folderName = Split-Path $current -Leaf
         
-        # Found target directory
         if ($folderName -eq "CSharpTeachingSolution") {
             return $current
         }
         
-        # Reached root directory
         $parent = Split-Path $current -Parent
         if ($parent -eq $null -or $parent -eq $current) {
             break
@@ -103,8 +106,8 @@ if ($SolutionRoot -eq $null) {
 
 $TargetPath = Join-Path $SolutionRoot $ModuleName
 
-Write-Host "Solution Root: $SolutionRoot" -ForegroundColor Cyan
-Write-Host "Creating module: $TargetPath" -ForegroundColor Cyan
+Write-Host "Solution Root: $SolutionRoot" -ForegroundColor Green
+Write-Host "Creating module at: $TargetPath" -ForegroundColor Green
 
 # ------------------------------
 # Create directory structure
@@ -165,7 +168,7 @@ Set-Content -Path $CsprojFile -Value $Csproj -Encoding UTF8
 # ------------------------------
 # Create main class file
 # ------------------------------
-Write-Host "Adding default main class file" -ForegroundColor Yellow
+Write-Host "Adding main class file: src\$CustomMain.cs" -ForegroundColor Yellow
 
 $MainPath = "src\$CustomMain.cs"
 $MainCode = @"
@@ -187,7 +190,7 @@ Set-Content -Path $MainPath -Value $MainCode -Encoding UTF8
 # ------------------------------
 # Create test file
 # ------------------------------
-Write-Host "Adding test code" -ForegroundColor Yellow
+Write-Host "Adding test code: test\test.cs" -ForegroundColor Yellow
 
 $TestCode = @"
 using System;
@@ -215,9 +218,16 @@ Set-Content -Path "test\test.cs" -Value $TestCode -Encoding UTF8
 # ------------------------------
 # Completion message
 # ------------------------------
-Write-Host "`nModule $ModuleName created successfully!" -ForegroundColor Green
-Write-Host "Location: $TargetPath" -ForegroundColor Cyan
+Write-Host "`n========================================" -ForegroundColor Green
+Write-Host "Module $ModuleName created successfully!" -ForegroundColor Green
+Write-Host "Location: $TargetPath" -ForegroundColor Green
+Write-Host "========================================`n" -ForegroundColor Green
+
+try {
+    code $TargetPath
+} catch {
+    Write-Host "Note: Could not open VS Code automatically." -ForegroundColor Yellow
+}
 
 
-code $TargetPath
 

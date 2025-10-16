@@ -1,31 +1,31 @@
+# ============================================================
+# create_web_server.ps1 (Final Fixed Version)
+# ============================================================
 
-# ============================================================
-# create_web_server.ps1 (Fixed Path Logic Version)
-# ============================================================
 
 param (
+    [Parameter(Mandatory = $true)]
     [string]$ModuleName,
-    [string]$CustomMain
+    [string]$CustomMain = ""
 )
 
 $ErrorActionPreference = "Stop"
 $Framework = "net8.0"
 
 # ------------------------------
-# Normalize module name
+# Validate module name
 # ------------------------------
 if ([string]::IsNullOrWhiteSpace($ModuleName)) {
     Write-Host "Error: ModuleName cannot be empty!" -ForegroundColor Red
     exit 1
 }
+
+# Add Web. prefix if not present
 if ($ModuleName -notmatch '^Web\.') {
     $ModuleName = "Web.$ModuleName"
 }
 
-if ($CustomMain -eq "") {
-    $CustomMain = $ModuleName
-}
-
+# Capitalize each part
 $ModuleParts = $ModuleName -split '\.'
 $ModuleName = ($ModuleParts | ForEach-Object { 
     if ($_.Length -eq 1) {
@@ -35,15 +35,20 @@ $ModuleName = ($ModuleParts | ForEach-Object {
     }
 }) -join '.'
 
-if (-not $CustomMain) {
+# Determine main class name
+if ([string]::IsNullOrWhiteSpace($CustomMain)) {
     $CustomMain = ($ModuleName.Split('.')[-1])
 }
 
+# Capitalize class name
 if ($CustomMain.Length -eq 1) {
     $ClassName = $CustomMain.ToUpper()
 } else {
     $ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1, $CustomMain.Length - 1))
 }
+
+Write-Host "Module Name: $ModuleName" -ForegroundColor Cyan
+Write-Host "Class Name: $ClassName" -ForegroundColor Cyan
 
 # ------------------------------
 # Find CSharpTeachingSolution directory
@@ -85,8 +90,8 @@ if ($SolutionRoot -eq $null) {
 
 $TargetPath = Join-Path $SolutionRoot $ModuleName
 
-Write-Host "Solution Root: $SolutionRoot" -ForegroundColor Cyan
-Write-Host "Creating web module: $TargetPath" -ForegroundColor Cyan
+Write-Host "Solution Root: $SolutionRoot" -ForegroundColor Green
+Write-Host "Creating web module at: $TargetPath" -ForegroundColor Green
 
 # ------------------------------
 # Create directories
@@ -106,7 +111,7 @@ Set-Location $TargetPath
 # ------------------------------
 # Create .csproj file
 # ------------------------------
-Write-Host "Generating project file" -ForegroundColor Yellow
+Write-Host "Generating project file: $ModuleName.csproj" -ForegroundColor Yellow
 
 $Csproj = @"
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -150,7 +155,7 @@ Set-Content -Path "$ModuleName.csproj" -Value $Csproj -Encoding UTF8
 # ------------------------------
 # Create main class
 # ------------------------------
-Write-Host "Adding main class" -ForegroundColor Yellow
+Write-Host "Adding main class: src\$CustomMain.cs" -ForegroundColor Yellow
 
 $MainCode = @"
 using System;
@@ -216,7 +221,7 @@ Set-Content -Path "src\$CustomMain.cs" -Value $MainCode -Encoding UTF8
 # ------------------------------
 # Create HTML file
 # ------------------------------
-Write-Host "Adding home.html" -ForegroundColor Yellow
+Write-Host "Adding HTML: src\home.html" -ForegroundColor Yellow
 
 $Html = @"
 <!doctype html>
@@ -236,7 +241,7 @@ Set-Content -Path "src\home.html" -Value $Html -Encoding UTF8
 # ------------------------------
 # Create test file
 # ------------------------------
-Write-Host "Adding test" -ForegroundColor Yellow
+Write-Host "Adding test: test\test.cs" -ForegroundColor Yellow
 
 $TestCode = @"
 using System;
@@ -270,7 +275,15 @@ Set-Content -Path "test\test.cs" -Value $TestCode -Encoding UTF8
 # ------------------------------
 # Completion message
 # ------------------------------
-Write-Host "`nWeb module $ModuleName created successfully!" -ForegroundColor Green
-Write-Host "Location: $TargetPath" -ForegroundColor Cyan
+Write-Host "`n========================================" -ForegroundColor Green
+Write-Host "Web module $ModuleName created successfully!" -ForegroundColor Green
+Write-Host "Location: $TargetPath" -ForegroundColor Green
+Write-Host "========================================`n" -ForegroundColor Green
 
-code $TargetPath
+try {
+    code $TargetPath
+} catch {
+    Write-Host "Note: Could not open VS Code automatically." -ForegroundColor Yellow
+}
+
+
