@@ -1,32 +1,32 @@
 <#
 ================================================================
-模块自动生成脚本（PowerShell 版）
-功能：在当前目录的【父目录】中创建一个新的 C# 模块项目
+Module Auto-Generation Script (PowerShell Version)
+Function: Create a new C# module project in the **parent directory** of the current folder
 ================================================================
 #>
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$ModuleName,      # 模块名，例如 Module.Hello 或 Hello
+    [string]$ModuleName,      # Module name, e.g. Module.Hello or Hello
 
-    [string]$CustomMain       # 可选主类名
+    [string]$CustomMain       # Optional main class name
 )
 
 # ------------------------------
-# 环境设置
+# Environment settings
 # ------------------------------
 $ErrorActionPreference = "Stop"
 $ProjectType = "console"
 $Framework = "net8.0"
 
 # ------------------------------
-# 模块名检查与标准化
+# Validate and normalize module name
 # ------------------------------
 if ($ModuleName -notmatch '^Module\.') {
     $ModuleName = "Module.$ModuleName"
 }
 
-# 将模块名的每个部分首字母大写（含下划线）
+# Capitalize each part of the module name (including underscores)
 function Capitalize-EachPart($input) {
     $parts = $input -split '\.'
     $resultParts = @()
@@ -47,31 +47,32 @@ function Capitalize-EachPart($input) {
 
 $ModuleName = Capitalize-EachPart $ModuleName
 
-# 若未指定自定义主类名，则取模块名最后一部分
+# If no custom main class is provided, use the last part of the module name
 if (-not $CustomMain) {
     $CustomMain = ($ModuleName.Split('.')[-1])
 }
 
-# 主类名首字母大写
+# Capitalize main class name
 $ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1))
 
 # ------------------------------
-# 创建模块目录（在父目录中）
+# Create module directory (in parent directory)
 # ------------------------------
 $CurrentDir = Get-Location
 $CurrentFolderName = Split-Path $CurrentDir -Leaf
-# 判断当前目录是否为 "CsharpTeachingSolution"
+
+# Check if current directory is "CSharpTeachingSolution"
 if ($CurrentFolderName -eq "CSharpTeachingSolution") {
-    # 如果当前目录是 CsharpTeachingSolution，就直接使用当前目录
+    # If inside CSharpTeachingSolution, create directly inside it
     $TargetPath = Join-Path $CurrentDir $ModuleName
 }
 else {
-    # 否则使用上一级目录
+    # Otherwise, create inside the parent directory
     $ParentDir = Split-Path $CurrentDir -Parent
     $TargetPath = Join-Path $ParentDir $ModuleName
 }
 
-Write-Host "在父目录创建模块目录: $TargetPath" -ForegroundColor Cyan
+Write-Host "Creating module directory in parent directory: $TargetPath" -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path "$TargetPath/src" | Out-Null
 New-Item -ItemType Directory -Force -Path "$TargetPath/test" | Out-Null
@@ -80,10 +81,10 @@ New-Item -ItemType Directory -Force -Path "$TargetPath/build" | Out-Null
 Set-Location $TargetPath
 
 # ------------------------------
-# 创建 csproj 文件
+# Create .csproj file
 # ------------------------------
 $CsprojFile = "$ModuleName.csproj"
-Write-Host "生成项目文件: $CsprojFile" -ForegroundColor Yellow
+Write-Host "Generating project file: $CsprojFile" -ForegroundColor Yellow
 
 $Csproj = @"
 <Project Sdk="Microsoft.NET.Sdk">
@@ -102,13 +103,13 @@ $Csproj = @"
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
-  <!-- 包含主代码与测试代码 -->
+  <!-- Include main and test source files -->
   <ItemGroup>
     <Compile Include="src\\**\\*.cs" />
     <Compile Include="test\\**\\*.cs" />
   </ItemGroup>
 
-  <!-- 测试依赖项 -->
+  <!-- Test dependencies -->
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.8.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.0">
@@ -123,9 +124,9 @@ $Csproj = @"
 Set-Content -Path $CsprojFile -Value $Csproj -Encoding UTF8
 
 # ------------------------------
-# 添加默认主类文件
+# Add default main class file
 # ------------------------------
-Write-Host "添加默认主类文件" -ForegroundColor Yellow
+Write-Host "Adding default main class file" -ForegroundColor Yellow
 
 $MainPath = "src/$CustomMain.cs"
 $MainCode = @"
@@ -144,9 +145,9 @@ namespace $ModuleName
 Set-Content -Path $MainPath -Value $MainCode -Encoding UTF8
 
 # ------------------------------
-# 添加测试文件
+# Add test file
 # ------------------------------
-Write-Host "添加测试代码" -ForegroundColor Yellow
+Write-Host "Adding test code" -ForegroundColor Yellow
 
 $TestCode = @"
 using System;
@@ -164,7 +165,7 @@ namespace $ModuleName.Tests
             var sw = Stopwatch.StartNew();
             $ClassName.Main(Array.Empty<string>());
             sw.Stop();
-            Assert.True(true); // 示例测试
+            Assert.True(true); // Example test
             Console.WriteLine($"Time: {sw.ElapsedMilliseconds} ms");
         }
     }
@@ -173,12 +174,12 @@ namespace $ModuleName.Tests
 Set-Content -Path "test/test.cs" -Value $TestCode -Encoding UTF8
 
 # ------------------------------
-# 完成提示
+# Completion message
 # ------------------------------
-Write-Host "`n模块 $ModuleName 创建完成。" -ForegroundColor Green
-Write-Host "路径：$TargetPath" -ForegroundColor Cyan
+Write-Host "`nModule $ModuleName has been successfully created." -ForegroundColor Green
+Write-Host "Location: $TargetPath" -ForegroundColor Cyan
 
 # ------------------------------
-# 打开 VS Code
+# Open in VS Code
 # ------------------------------
 code $TargetPath

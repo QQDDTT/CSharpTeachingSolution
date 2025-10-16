@@ -1,32 +1,33 @@
 <#
 ================================================================
-📘 模块自动生成脚本（PowerShell 版）
-功能：在当前目录的父目录中创建新的 C# Web 模块项目（Minimal API）
+Module Auto-Generation Script (PowerShell Version)
+Function: Create a new C# Web module project (Minimal API) 
+          in the parent directory of the current folder.
 ================================================================
 #>
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$ModuleName,         # 模块名，例如 Hello 或 Web.Hello
+    [string]$ModuleName,         # Module name, e.g. Hello or Web.Hello
 
-    [string]$CustomMain          # 可选主类名
+    [string]$CustomMain          # Optional main class name
 )
 
 # ------------------------------
-# 环境设置
+# Environment settings
 # ------------------------------
 $ErrorActionPreference = "Stop"
 $Framework = "net8.0"
 $ProjectType = "web server"
 
 # ------------------------------
-# 模块名规范化
+# Normalize module name
 # ------------------------------
 if ($ModuleName -notmatch '^Web\.') {
     $ModuleName = "Web.$ModuleName"
 }
 
-# 两个部分首字母大写
+# Capitalize both parts of the name
 $ModuleParts = $ModuleName -split '\.'
 $ModuleName = ($ModuleParts | ForEach-Object { 
     $_.Substring(0,1).ToUpper() + $_.Substring(1).ToLower() 
@@ -39,22 +40,22 @@ if (-not $CustomMain) {
 $ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1))
 
 # ------------------------------
-# 创建模块目录（在父目录中）
+# Create module directory (in parent directory)
 # ------------------------------
 $CurrentDir = Get-Location
 $CurrentFolderName = Split-Path $CurrentDir -Leaf
-# 判断当前目录是否为 "CsharpTeachingSolution"
+# Check if current directory is "CSharpTeachingSolution"
 if ($CurrentFolderName -eq "CSharpTeachingSolution") {
-    # 如果当前目录是 CsharpTeachingSolution，就直接使用当前目录
+    # If the current directory is CSharpTeachingSolution, create inside it
     $TargetPath = Join-Path $CurrentDir $ModuleName
 }
 else {
-    # 否则使用上一级目录
+    # Otherwise, create inside the parent directory
     $ParentDir = Split-Path $CurrentDir -Parent
     $TargetPath = Join-Path $ParentDir $ModuleName
 }
 
-Write-Host "在父目录创建模块目录: $TargetPath" -ForegroundColor Cyan
+Write-Host "Creating module directory in parent folder: $TargetPath" -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path "$TargetPath/src" | Out-Null
 New-Item -ItemType Directory -Force -Path "$TargetPath/test" | Out-Null
@@ -63,9 +64,9 @@ New-Item -ItemType Directory -Force -Path "$TargetPath/build" | Out-Null
 Set-Location $TargetPath
 
 # ------------------------------
-# 创建 csproj 文件
+# Create .csproj file
 # ------------------------------
-Write-Host "生成项目文件: $ModuleName.csproj" -ForegroundColor Yellow
+Write-Host "Generating project file: $ModuleName.csproj" -ForegroundColor Yellow
 
 $Csproj = @"
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -104,9 +105,9 @@ $Csproj = @"
 Set-Content -Path "$ModuleName.csproj" -Value $Csproj -Encoding UTF8
 
 # ------------------------------
-# 添加默认主类文件
+# Add default main class
 # ------------------------------
-Write-Host "添加默认主类: $ClassName.cs" -ForegroundColor Yellow
+Write-Host "Adding default main class: $ClassName.cs" -ForegroundColor Yellow
 
 $MainCode = @"
 using System;
@@ -146,13 +147,13 @@ namespace $ModuleName
 Set-Content -Path "src/$CustomMain.cs" -Value $MainCode -Encoding UTF8
 
 # ------------------------------
-# 添加网页文件
+# Add default web page
 # ------------------------------
-Write-Host "添加 home.html" -ForegroundColor Yellow
+Write-Host "Adding home.html" -ForegroundColor Yellow
 
 $Html = @"
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <title>$ModuleName API</title>
@@ -165,9 +166,9 @@ $Html = @"
 Set-Content -Path "src/home.html" -Value $Html -Encoding UTF8
 
 # ------------------------------
-# 添加测试文件
+# Add test file
 # ------------------------------
-Write-Host "添加 test.cs" -ForegroundColor Yellow
+Write-Host "Adding test.cs" -ForegroundColor Yellow
 
 $TestCode = @"
 using System;
@@ -189,7 +190,7 @@ namespace $ModuleName.Tests
             var result = $ClassName.LoadHtml(htmlPath);
             Console.WriteLine(result);
             sw.Stop();
-            Assert.True(true); // 示例测试
+            Assert.True(true); // Example test
             Console.WriteLine($"Time: {sw.ElapsedMilliseconds} ms");
         }
     }
@@ -198,12 +199,12 @@ namespace $ModuleName.Tests
 Set-Content -Path "test/test.cs" -Value $TestCode -Encoding UTF8
 
 # ------------------------------
-# 完成提示
+# Completion message
 # ------------------------------
-Write-Host "`n 模块 $ModuleName 创建完成！" -ForegroundColor Green
-Write-Host "路径：$TargetPath" -ForegroundColor Cyan
+Write-Host "`n Module $ModuleName created successfully!" -ForegroundColor Green
+Write-Host "Location: $TargetPath" -ForegroundColor Cyan
 
 # ------------------------------
-# 打开 VS Code
+# Open project in VS Code
 # ------------------------------
 code $TargetPath
