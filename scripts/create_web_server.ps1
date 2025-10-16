@@ -26,6 +26,9 @@ $ProjectType = "web server"
 if ($ModuleName -notmatch '^Web\.') {
     $ModuleName = "Web.$ModuleName"
 }
+if ($CustomMain -eq "") {
+    $CustomMain = $ModuleName
+}
 
 # Capitalize both parts of the name
 $ModuleParts = $ModuleName -split '\.'

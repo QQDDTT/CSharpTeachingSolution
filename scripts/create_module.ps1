@@ -6,9 +6,7 @@ Function: Create a new C# module project in the **parent directory** of the curr
 #>
 
 param (
-    [Parameter(Mandatory = $true)]
     [string]$ModuleName,      # Module name, e.g. Module.Hello or Hello
-
     [string]$CustomMain       # Optional main class name
 )
 
@@ -24,6 +22,10 @@ $Framework = "net8.0"
 # ------------------------------
 if ($ModuleName -notmatch '^Module\.') {
     $ModuleName = "Module.$ModuleName"
+}
+
+if ($CustomMain -eq "") {
+    $CustomMain = $ModuleName
 }
 
 # Capitalize each part of the module name (including underscores)
