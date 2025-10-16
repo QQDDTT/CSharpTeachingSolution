@@ -36,7 +36,12 @@ function Capitalize-EachPart($input) {
         $fixedSubs = @()
         foreach ($sub in $subs) {
             if ($sub.Length -gt 0) {
-                $fixedSubs += ($sub.Substring(0,1).ToUpper() + $sub.Substring(1).ToLower())
+                # 修复：检查长度避免 Substring 越界
+                if ($sub.Length -eq 1) {
+                    $fixedSubs += $sub.ToUpper()
+                } else {
+                    $fixedSubs += ($sub.Substring(0,1).ToUpper() + $sub.Substring(1).ToLower())
+                }
             }
         }
         $resultParts += ($fixedSubs -join '_')
@@ -53,7 +58,11 @@ if (-not $CustomMain) {
 }
 
 # Capitalize main class name
-$ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1))
+if ($CustomMain.Length -eq 1) {
+    $ClassName = $CustomMain.ToUpper()
+} else {
+    $ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1))
+}
 
 # ------------------------------
 # Create module directory (in parent directory)
@@ -72,12 +81,20 @@ else {
     $TargetPath = Join-Path $ParentDir $ModuleName
 }
 
-Write-Host "Creating module directory in parent directory: $TargetPath" -ForegroundColor Cyan
+Write-Host "Creating module directory: $TargetPath" -ForegroundColor Cyan
 
-New-Item -ItemType Directory -Force -Path "$TargetPath/src" | Out-Null
-New-Item -ItemType Directory -Force -Path "$TargetPath/test" | Out-Null
-New-Item -ItemType Directory -Force -Path "$TargetPath/build" | Out-Null
+# 修复：使用 try-catch 处理目录创建
+try {
+    New-Item -ItemType Directory -Force -Path "$TargetPath/src" | Out-Null
+    New-Item -ItemType Directory -Force -Path "$TargetPath/test" | Out-Null
+    New-Item -ItemType Directory -Force -Path "$TargetPath/build" | Out-Null
+} catch {
+    Write-Host "Error creating directories: $_" -ForegroundColor Red
+    exit 1
+}
 
+# 保存原始位置
+$OriginalLocation = Get-Location
 Set-Location $TargetPath
 
 # ------------------------------
@@ -86,6 +103,7 @@ Set-Location $TargetPath
 $CsprojFile = "$ModuleName.csproj"
 Write-Host "Generating project file: $CsprojFile" -ForegroundColor Yellow
 
+# 修复：统一使用反斜杠作为路径分隔符
 $Csproj = @"
 <Project Sdk="Microsoft.NET.Sdk">
 
@@ -94,19 +112,19 @@ $Csproj = @"
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>$ModuleName</AssemblyName>
-    <OutputPath>build/</OutputPath>
+    <OutputPath>build\</OutputPath>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <StartupObject>$ModuleName.$ClassName</StartupObject>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+  <PropertyGroup Condition=" '`$(Configuration)' == 'Debug' ">
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <!-- Include main and test source files -->
   <ItemGroup>
-    <Compile Include="src\\**\\*.cs" />
-    <Compile Include="test\\**\\*.cs" />
+    <Compile Include="src\**\*.cs" />
+    <Compile Include="test\**\*.cs" />
   </ItemGroup>
 
   <!-- Test dependencies -->
@@ -128,9 +146,10 @@ Set-Content -Path $CsprojFile -Value $Csproj -Encoding UTF8
 # ------------------------------
 Write-Host "Adding default main class file" -ForegroundColor Yellow
 
-$MainPath = "src/$CustomMain.cs"
+$MainPath = "src\$CustomMain.cs"
 $MainCode = @"
 using System;
+
 namespace $ModuleName
 {
     public class $ClassName
@@ -153,7 +172,6 @@ $TestCode = @"
 using System;
 using Xunit;
 using System.Diagnostics;
-using $ModuleName;
 
 namespace $ModuleName.Tests
 {
@@ -166,12 +184,12 @@ namespace $ModuleName.Tests
             $ClassName.Main(Array.Empty<string>());
             sw.Stop();
             Assert.True(true); // Example test
-            Console.WriteLine($"Time: {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine(`$"Time: {sw.ElapsedMilliseconds} ms");
         }
     }
 }
 "@
-Set-Content -Path "test/test.cs" -Value $TestCode -Encoding UTF8
+Set-Content -Path "test\test.cs" -Value $TestCode -Encoding UTF8
 
 # ------------------------------
 # Completion message
@@ -182,4 +200,11 @@ Write-Host "Location: $TargetPath" -ForegroundColor Cyan
 # ------------------------------
 # Open in VS Code
 # ------------------------------
-code $TargetPath
+try {
+    code $TargetPath
+} catch {
+    Write-Host "Could not open VS Code. Please open manually: $TargetPath" -ForegroundColor Yellow
+}
+
+# 返回原始位置
+Set-Location $OriginalLocation
