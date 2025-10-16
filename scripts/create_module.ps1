@@ -202,11 +202,5 @@ Write-Host "Location: $TargetPath" -ForegroundColor Cyan
 # ------------------------------
 # Open in VS Code
 # ------------------------------
-try {
-    code $TargetPath
-} catch {
-    Write-Host "Could not open VS Code. Please open manually: $TargetPath" -ForegroundColor Yellow
-}
 
-# 返回原始位置
-Set-Location $OriginalLocation
+code $TargetPath
