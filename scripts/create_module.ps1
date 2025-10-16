@@ -38,7 +38,9 @@ function Capitalize-EachPart($input) {
                 if ($sub.Length -eq 1) {
                     $fixedSubs += $sub.ToUpper()
                 } else {
-                    $fixedSubs += ($sub.Substring(0,1).ToUpper() + $sub.Substring(1, $sub.Length - 1).ToLower())
+                    $firstChar = $sub.Substring(0, 1).ToUpper()
+                    $restChars = $sub.Substring(1).ToLower()
+                    $fixedSubs += ($firstChar + $restChars)
                 }
             }
         }
@@ -59,7 +61,9 @@ if ([string]::IsNullOrWhiteSpace($CustomMain)) {
 if ($CustomMain.Length -eq 1) {
     $ClassName = $CustomMain.ToUpper()
 } else {
-    $ClassName = ($CustomMain.Substring(0,1).ToUpper() + $CustomMain.Substring(1, $CustomMain.Length - 1))
+    $firstChar = $CustomMain.Substring(0, 1).ToUpper()
+    $restChars = $CustomMain.Substring(1)
+    $ClassName = $firstChar + $restChars
 }
 
 Write-Host "Module Name: $ModuleName" -ForegroundColor Cyan
@@ -229,5 +233,5 @@ try {
     Write-Host "Note: Could not open VS Code automatically." -ForegroundColor Yellow
 }
 
-
+Set-Location $OriginalLocation
 
