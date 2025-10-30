@@ -22,10 +22,11 @@ namespace MainWeb
     /// </summary>
     public class MainWeb
     {
-        // 最大并发用户数
+        // 最大并发用户数（仅限制非静态资源的请求）
         private static readonly int MaxUsers = 1;
 
         // 信号量用于限制最大并发用户
+        // 注意：静态资源请求（CSS、JS、图片等）不受此限制
         private static readonly SemaphoreSlim UserSemaphore = new(MaxUsers, MaxUsers);
 
         // 活跃用户 Session 管理（线程安全）
@@ -62,12 +63,32 @@ namespace MainWeb
             // 启用 Session 中间件
             app.UseSession();
 
-            // 并发访问限制中间件
+            // 并发访问限制中间件（排除静态资源）
             app.Use(async (context, next) =>
             {
+                // 检查是否为静态资源请求
+                bool isStaticResource = IsStaticResourceRequest(context.Request.Path);
+
                 string sessionId = context.Session.Id;
                 bool isNewUser = !ActiveSessions.ContainsKey(sessionId);
 
+                // 静态资源跳过并发限制，直接处理
+                if (isStaticResource)
+                {
+                    try
+                    {
+                        await next.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"[Error] {ex.Message}");
+                        context.Response.StatusCode = 500;
+                        await context.Response.WriteAsync("Internal Server Error");
+                    }
+                    return;
+                }
+
+                // 非静态资源：应用并发控制
                 if (isNewUser)
                 {
                     if (!UserSemaphore.Wait(0))
@@ -225,10 +246,51 @@ namespace MainWeb
             app.MapGet("/heartbeat", () => Results.Text("OK", "text/plain"));
 
             // 启动服务
-            app.Run("http://localhost:5000");
+            app.Run(args[1]);
         }
 
         // ---------------- 文件加载 ----------------
+        
+        /// <summary>
+        /// 判断请求路径是否为静态资源
+        /// 静态资源包括：HTML、CSS、JS、图片、字体等文件
+        /// </summary>
+        private static bool IsStaticResourceRequest(PathString path)
+        {
+            // 如果路径为空或根路径，不是静态资源请求
+            if (!path.HasValue || path.Value == "/")
+                return false;
+
+            string pathValue = path.Value.ToLower();
+
+            // 排除 API 路径（这些需要并发控制）
+            if (pathValue.StartsWith("/system") || 
+                pathValue.StartsWith("/project") || 
+                pathValue.StartsWith("/terminal") ||
+                pathValue.StartsWith("/heartbeat"))
+                return false;
+
+            // 检查文件扩展名
+            string extension = Path.GetExtension(pathValue);
+            
+            // 静态资源文件扩展名列表
+            string[] staticExtensions = new[]
+            {
+                ".html", ".htm",           // HTML 文件
+                ".css",                    // CSS 样式
+                ".js",                     // JavaScript
+                ".json",                   // JSON 数据
+                ".png", ".jpg", ".jpeg",   // 图片
+                ".gif", ".svg", ".ico",    // 图片
+                ".woff", ".woff2",         // 字体
+                ".ttf", ".eot",            // 字体
+                ".txt", ".xml",            // 文本文件
+                ".pdf", ".zip"             // 文档
+            };
+
+            return staticExtensions.Contains(extension);
+        }
+
         public static IResult LoadHtml(string filePath) => LoadFile(filePath);
 
         /// <summary>
