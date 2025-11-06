@@ -1,35 +1,28 @@
+using System.Drawing;
+using System.Runtime.CompilerServices;
+
 namespace Module.Zoo
 {
-    class Dog : Animal<Dog>
+    public class Dog : Animal<Dog>, IAnimal<Dog>
     {
-        private readonly static Random random = new Random();
-        public readonly static Food[] Foods = { Food.Bone, Food.Meet };
-        public string Name { get; set; } = "dog";
-        public Gender Gender { get; set; } = Gender.Male;
-        public Color Color { get; set; } = Color.White;
-        public Dog? Father;
-        public Dog? Mother;
-        public void eat()
-        {
-            Console.WriteLine("I'm eating {}", Foods[random.Next(0, Foods.Length)]);
-        }
-
-        public void run()
-        {
-            Console.WriteLine("I'm running...");
-        }
-
+        public Dog(string Name, Gender Gender, Color Color) : base(Name, Gender, Color) { }
         public static Dog operator +(Dog a, Dog b)
         {
             if (a.Gender != b.Gender)
             {
-                Dog puppy = new Dog();
+                Dog puppy = new Dog("puppy",
+                        random.Next(0, 1) < 0.5 ? Gender.Male : Gender.Female,
+                        random.Next(0, 1) < 0.5 ? a.Color : b.Color);
                 puppy.Father = a.Gender == Gender.Male ? a : b;
                 puppy.Mother = a.Gender == Gender.Female ? a : b;
-                puppy.Name = "puppy";
                 return puppy;
             }
             throw new ApplicationException("Gender Error!");
+        }
+
+        public string Message()
+        {
+            return $"name: {this.Name}";
         }
     }
 }

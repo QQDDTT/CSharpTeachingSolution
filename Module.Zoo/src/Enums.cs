@@ -1,14 +1,23 @@
 namespace Module.Zoo
 {
-    enum Gender
+    /// <summary>
+    /// Gender
+    /// </summary>
+    public enum Gender
     {
         Male, Female
     }
-    enum Food
+    /// <summary>
+    /// Food
+    /// </summary>
+    public enum Food
     {
         Bone, Fish, Meet
     }
-    enum Color
+    /// <summary>
+    /// Color
+    /// </summary>
+    public enum Color
     {
         White, Black, Yellow, Pink, Blue, Orange, Green, Red, Purple, Brown, Scyan
     }
