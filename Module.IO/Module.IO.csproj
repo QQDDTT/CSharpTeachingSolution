@@ -1,27 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>Web.Game2048</AssemblyName>
+    <AssemblyName>Module.IO</AssemblyName>
     <OutputPath>build/</OutputPath>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <StartupObject>Web.Game2048.Game2048</StartupObject>
-    <RunArguments>--urls http://0.0.0.0:8090</RunArguments>
+    <StartupObject>Module.IO.IO</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '' == 'Debug' ">
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
-  <!-- 包含主代码和测试代码 -->
+  <!-- 包含主代码与测试代码 -->
   <ItemGroup>
     <Compile Include="src\**\*.cs" />
     <Compile Include="test\**\*.cs" />
   </ItemGroup>
 
-  <!-- 使用 xUnit 测试框架 -->
+  <!-- 测试依赖项 -->
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.8.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.0">

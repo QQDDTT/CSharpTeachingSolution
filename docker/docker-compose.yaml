@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  main-web:
+    build:
+      context: ..
+      dockerfile: MainWeb/Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: always
+
+  # 其他服务可在此堆叠
