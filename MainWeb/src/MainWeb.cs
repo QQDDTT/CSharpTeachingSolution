@@ -224,6 +224,7 @@ namespace MainWeb
                 {
                     "start" => terminalExecutor.StartCommand(req.Query["cmd"]),
                     "poll" => terminalExecutor.PollOutput(),
+                    "autocomplete" => terminalExecutor.AutoComplete(req.Query["input"]),
                     _ => ResponseData.Error($"Unknown action: {action}")
                 };
                 return Results.Json(result);
@@ -592,7 +593,10 @@ namespace MainWeb
                 {
                     CurrentDir = Path.GetRelativePath(RootDir, newDir);
                     running = false;
-                    return ResponseData.Success("Directory changed", new Dictionary<string, string> { ["path"] = CurrentDir });
+                    return ResponseData.Success("Directory changed", new Dictionary<string, string> { 
+                        ["path"] = CurrentDir,
+                        ["absolute_path"] = newDir
+                    });
                 }
                 else
                 {
@@ -721,8 +725,73 @@ namespace MainWeb
             map["err"] = errSb.ToString();
             map["running"] = running ? "1" : "0";
             map["path"] = CurrentDir;
+            map["absolute_path"] = Path.GetFullPath(Path.Combine(RootDir, CurrentDir));
 
             return ResponseData.Success("Get output", map);
+        }
+
+        /// <summary>
+        /// 提供路径自动补全功能
+        /// </summary>
+        public ResponseData AutoComplete(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return ResponseData.Success("No input", new Dictionary<string, string> { ["matches"] = "", ["prefix"] = "" });
+
+            try
+            {
+                // 找到最后一个空格，获取当前正在补全的路径部分
+                int lastSpace = input.LastIndexOf(' ');
+                string pathPart = lastSpace == -1 ? input : input.Substring(lastSpace + 1);
+
+                // 解析目录和文件前缀
+                string searchDir = Path.Combine(RootDir, CurrentDir);
+                string prefix = pathPart;
+
+                // 如果包含路径分隔符，则拆分目录和前缀
+                int lastSep = pathPart.LastIndexOfAny(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
+                if (lastSep >= 0)
+                {
+                    string dirPart = pathPart.Substring(0, lastSep);
+                    prefix = pathPart.Substring(lastSep + 1);
+                    searchDir = Path.GetFullPath(Path.Combine(searchDir, dirPart));
+                }
+
+                if (!Directory.Exists(searchDir))
+                    return ResponseData.Success("Directory not found", new Dictionary<string, string> { ["matches"] = "", ["prefix"] = pathPart });
+
+                // 搜索目录和文件
+                var entries = Directory.GetFileSystemEntries(searchDir, prefix + "*")
+                                       .Select(p => Path.GetFileName(p) + (Directory.Exists(p) ? "/" : ""))
+                                       .ToList();
+
+                if (entries.Count == 0)
+                {
+                    return ResponseData.Success("No matches", new Dictionary<string, string> { ["matches"] = "", ["prefix"] = pathPart });
+                }
+
+                // 找出最长公共前缀
+                string commonPrefix = entries[0];
+                for (int i = 1; i < entries.Count; i++)
+                {
+                    int j = 0;
+                    while (j < commonPrefix.Length && j < entries[i].Length && commonPrefix[j] == entries[i][j])
+                        j++;
+                    commonPrefix = commonPrefix.Substring(0, j);
+                }
+
+                return ResponseData.Success("Matches found", new Dictionary<string, string>
+                {
+                    // 返回整个输入与自动补全的部分进行替换。直接返回用于补全的剩余片段比较好。
+                    ["addition"] = commonPrefix.Substring(prefix.Length),
+                    ["matches"] = JsonSerializer.Serialize(entries),
+                    ["isMultiple"] = entries.Count > 1 ? "true" : "false"
+                });
+            }
+            catch (Exception ex)
+            {
+                return ResponseData.Error("Autocomplete failed: " + ex.Message);
+            }
         }
 
     }

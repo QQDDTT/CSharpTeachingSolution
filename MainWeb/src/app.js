@@ -1,20 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
     const consoleTab = document.getElementById("consoleTab");
     const editorTab = document.getElementById("editorTab");
-    const consoleInput = document.getElementById("consoleInput");
-    const consoleOutput = document.getElementById("consoleOutput");
+    const terminalContainer = document.getElementById("terminal-container");
     const sleepOverlay = document.getElementById("sleepOverlay");
     const projectSelect = document.getElementById("projectSelect");
     const statusBar = document.getElementById("statusBar");
     const fileList = document.getElementById("fileList");
 
+    let editorInstance = null;
+    require(['vs/editor/editor.main'], function () {
+        editorInstance = monaco.editor.create(document.getElementById('editor'), {
+            value: '',
+            language: 'csharp',
+            theme: 'vs-dark',
+            automaticLayout: true
+        });
+        window.editorInstance = editorInstance;
+    });
 
-    const editor = document.getElementById("editor");
+    let currentMarkers = [];
 
     const newProjectModal = document.getElementById("newProjectModal");
     const createProjectBtn = document.getElementById("createProjectBtn");
     const cancelProjectBtn = document.getElementById("cancelProjectBtn");
-    
+
     const newFileModal = document.getElementById("newFileModal");
     const createFileBtn = document.getElementById("createFileBtn");
     const cancelFileBtn = document.getElementById("cancelFileBtn");
@@ -53,21 +62,16 @@ document.addEventListener("DOMContentLoaded", () => {
             viewStatus(data.message, "red");
         }
     }
-    document.getElementById("restartBtn").addEventListener("click", function() {systemAction("restart")});
-    document.getElementById("closeBtn").addEventListener("click", function() {systemAction("close")});
-    
+    document.getElementById("restartBtn").addEventListener("click", function () { systemAction("restart") });
+    document.getElementById("closeBtn").addEventListener("click", function () { systemAction("close") });
+
 
     // --- 状态栏 ---
     function viewStatus(text, color = "white") {
         statusBar.style.color = color;
         statusBar.innerText = text;
     }
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-            if (consoleTab.classList.contains("active"))
-                startCommand();
-        }
-    });
+    // Removed global enter key listener since Xterm handles inputs.
 
     // --- 选项卡 ---
     const tabs = [
@@ -83,6 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             t.btn.classList.add("active");
             t.content.classList.add("active");
+            if (t.content.id === "consoleTab" && window.fitAddon) {
+                setTimeout(() => window.fitAddon.fit(), 10);
+            }
         });
     });
 
@@ -94,44 +101,139 @@ document.addEventListener("DOMContentLoaded", () => {
     viewStatus("Welcome", "green");
 
     // --- 控制台 ---
-    let current_dir = "."
+    let current_dir = ".";
+    let absolute_dir = "";
+    let terminalInput = "";
 
-    function appendConsole(text, type = "out") {
-        const div = document.createElement("div");
-        div.textContent = text;
-        div.style.color = type === "err" ? "red" : "#0f0";
-        consoleOutput.appendChild(div);
-        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    const term = new Terminal({
+        cursorBlink: true,
+        fontFamily: 'monospace',
+        theme: {
+            background: '#000000'
+        }
+    });
+    const fitAddon = new FitAddon.FitAddon();
+    window.fitAddon = fitAddon;
+    term.loadAddon(fitAddon);
+    term.open(terminalContainer);
+    fitAddon.fit();
+
+    window.addEventListener('resize', () => {
+        fitAddon.fit();
+    });
+
+    function prompt() {
+        term.write(`\r\n\x1b[32m${current_dir}\x1b[0m $ `);
     }
 
-    document.getElementById("sendConsoleBtn").addEventListener("click", () => {
-        startCommand();
+    term.writeln('Welcome to MainWeb Terminal.');
+
+    // 初始化获取当前后端所处的目录
+    fetch(`/terminal?action=poll`)
+        .then(res => res.json().then(data => ({ ...data, status: res.status })))
+        .then(({ status, map }) => {
+            if (status === 200 && map) {
+                if (map.path !== undefined && map.path !== "") {
+                    current_dir = map.path;
+                }
+                if (map.absolute_path !== undefined && map.absolute_path !== "") {
+                    absolute_dir = map.absolute_path;
+                }
+            }
+            prompt();
+        })
+        .catch(() => {
+            prompt();
+        });
+
+    term.onData(e => {
+        if (polling) return; // Ignore input while command is running
+
+        switch (e) {
+            case '\r': // Enter
+                if (terminalInput.trim().length > 0) {
+                    term.write('\r\n');
+                    startCommand(terminalInput.trim());
+                } else {
+                    prompt();
+                }
+                terminalInput = "";
+                break;
+            case '\x7F': // Backspace
+                if (terminalInput.length > 0) {
+                    term.write('\b \b');
+                    terminalInput = terminalInput.substring(0, terminalInput.length - 1);
+                }
+                break;
+            case '\t': // Tab
+                if (terminalInput.length > 0) {
+                    fetch(`/terminal?action=autocomplete&input=${encodeURIComponent(terminalInput)}`)
+                        .then(res => res.json())
+                        .then(res => {
+                            if (res.Status === 200 && res.Map) {
+                                if (res.Map.addition) {
+                                    terminalInput += res.Map.addition;
+                                    term.write(res.Map.addition);
+                                }
+                                if (res.Map.isMultiple === "true" && res.Map.matches) {
+                                    const matches = JSON.parse(res.Map.matches);
+                                    term.write('\r\n' + matches.join('  '));
+                                    prompt();
+                                    term.write(terminalInput);
+                                }
+                            }
+                        })
+                        .catch(err => console.error("Autocomplete error:", err));
+                }
+                break;
+            default: // Print all other characters
+                if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7E) || e >= '\u00a0') {
+                    terminalInput += e;
+                    term.write(e);
+                }
+                break;
+        }
     });
 
     let polling = false;
     let pollStartTime = 0;
     const pollTimeout = 30000;
 
-    function startCommand() {
-        const cmd = consoleInput.value.trim();
+    function startCommand(cmd) {
         if (!cmd) return;
-        appendConsole(`~${current_dir} > ${cmd}`);
+        if (cmd.startsWith("dotnet build") || cmd.startsWith("dotnet run")) {
+            currentMarkers = [];
+            if (window.editorInstance) {
+                monaco.editor.setModelMarkers(window.editorInstance.getModel(), "csharp", []);
+            }
+        }
 
         fetch(`/terminal?action=start&cmd=${encodeURIComponent(cmd)}`)
             .then(res => res.json().then(data => ({ ...data, status: res.status })))
             .then(({ status, message, map }) => {
                 if (status === 200) {
-                    if (map.path == undefined || map.path == "") {current_dir == ".";}
-                    else {current_dir = map.path;}
-                    consoleInput.value = "";
-                    polling = true;
-                    pollStartTime = Date.now();
-                    pollOutput();
+                    if (map.path !== undefined && map.path !== "") {
+                        current_dir = map.path;
+                    }
+                    if (map.absolute_path !== undefined && map.absolute_path !== "") {
+                        absolute_dir = map.absolute_path;
+                    }
+                    if (map.running === "0") {
+                        prompt();
+                    } else {
+                        polling = true;
+                        pollStartTime = Date.now();
+                        pollOutput();
+                    }
                 } else {
-                    viewStatus(message, "red");
+                    term.write(`\r\n\x1b[31m${message}\x1b[0m`);
+                    prompt();
                 }
             })
-            .catch(err => console.error(`Start command failed: ${err}`, "red"));
+            .catch(err => {
+                term.write(`\r\n\x1b[31mStart command failed: ${err}\x1b[0m`);
+                prompt();
+            });
     }
 
 
@@ -139,8 +241,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!polling) return;
         // 超时检查
         if (Date.now() - pollStartTime > pollTimeout) {
-            viewStatus("Terminal command timed out", "red");
+            term.write(`\r\n\x1b[31mTerminal command timed out\x1b[0m`);
             polling = false;
+            prompt();
             return;
         }
 
@@ -148,24 +251,79 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(res => res.json().then(data => ({ ...data, status: res.status })))
             .then(({ status, message, map }) => {
                 if (status === 200) {
-                    if (map.out) map.out.split("\n").forEach(line => line && appendConsole(line, "out"));
-                    if (map.err) map.err.split("\n").forEach(line => line && appendConsole(line, "err"));
+                    if (map.out) {
+                        term.write(map.out.replace(/\n/g, '\r\n'));
+                    }
+                    if (map.err) {
+                        let errLines = map.err.split('\n');
+                        errLines.forEach(line => {
+                            if (line) {
+                                term.write(`\x1b[31m${line}\x1b[0m\r\n`);
+                            }
+                        });
+                    }
+
+                    parseAndRenderErrors(map.out + "\n" + map.err);
+
                     if (map.running === "1") {
                         viewStatus("Terminal is running...", "orange");
-                        setTimeout(pollOutput, 100); // 0.1 秒轮询
+                        setTimeout(pollOutput, 100); // 100 ms poll
                     } else {
                         viewStatus("Please input command", "green");
                         polling = false;
+                        prompt();
                     }
                 } else {
-                    viewStatus(message, "red");
+                    term.write(`\r\n\x1b[31m${message}\x1b[0m`);
+                    polling = false;
+                    prompt();
                 }
             })
             .catch(err => {
-                // 遇到错误也停止轮询，避免无限报错
                 polling = false;
-                viewStatus(`Poll failed : ${err}`, "red");
+                term.write(`\r\n\x1b[31mPoll failed : ${err}\x1b[0m`);
+                prompt();
             });
+    }
+
+    function parseAndRenderErrors(output) {
+        if (!output || !window.editorInstance) return;
+
+        // 匹配 C# 编译错误格式，例如：
+        // Program.cs(10,15): error CS1002: ; expected [/project/path.csproj]
+        // 匹配组: [1]文件路径, [2]行号, [3]列号, [4]类型(error/warning), [5]错误码, [6]信息
+        const regex = /([^\s\(\)]+)\((\d+),(\d+)\):\s+(error|warning)\s+([A-Z0-9]+):\s+(.+?)\s+\[/g;
+
+        let match;
+        let markersUpdated = false;
+
+        while ((match = regex.exec(output)) !== null) {
+            const filePath = match[1];
+            const line = parseInt(match[2], 10);
+            const col = parseInt(match[3], 10);
+            const severityStr = match[4];
+            const errorCode = match[5];
+            const errorMsg = match[6];
+
+            // 简单判断报错的文件路径是否包含当前打开的文件相对路径
+            if (currentFilePath && filePath.replace(/\\/g, '/').endsWith(currentFilePath.replace(/\\/g, '/'))) {
+                const severity = severityStr === "error" ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning;
+
+                currentMarkers.push({
+                    severity: severity,
+                    message: `[${errorCode}] ${errorMsg}`,
+                    startLineNumber: line,
+                    startColumn: col,
+                    endLineNumber: line,
+                    endColumn: col + 1
+                });
+                markersUpdated = true;
+            }
+        }
+
+        if (markersUpdated) {
+            monaco.editor.setModelMarkers(window.editorInstance.getModel(), "csharp", currentMarkers);
+        }
     }
 
     // --- 编辑器按钮 ---
@@ -211,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (value == "File") {
                         const div = document.createElement("div");
                         div.innerHTML = key;
-                        div.addEventListener("click", function() {
+                        div.addEventListener("click", function () {
                             currentFilePath = key;
                             readFile();
                         });
@@ -225,12 +383,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 fileList.appendChild(add);
             })
-            .catch (err => viewStatus(`Get files list failed :${err}`, "red"));
+            .catch(err => viewStatus(`Get files list failed :${err}`, "red"));
     }
     projectSelect.addEventListener("change", () => listProjectFiles());
 
     function cleanEditor() {
-        editor.innerHTML = "";
+        if (window.editorInstance) {
+            window.editorInstance.setValue("");
+            monaco.editor.setModelMarkers(window.editorInstance.getModel(), "csharp", []);
+            currentMarkers = [];
+        }
     }
 
     function readFile() {
@@ -240,14 +402,16 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(({ status, message, map }) => {
                 viewStatus(`${message}: ${map.file}`, status == 200 ? "green" : "red");
                 cleanEditor();
-                editor.value = map.content;
+                if (window.editorInstance) {
+                    window.editorInstance.setValue(map.content);
+                }
             })
-            .catch (err => viewStatus(`Read file failed : ${err}`, "red"));
+            .catch(err => viewStatus(`Read file failed : ${err}`, "red"));
     }
 
     function writeFile() {
         const projectName = projectSelect.value;
-        const content = editor.value;
+        const content = window.editorInstance ? window.editorInstance.getValue() : "";
         fetch(`/project?action=write_file&path=${currentFilePath}&project=${projectName}`, {
             method: "POST",
             headers: {
@@ -255,11 +419,11 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             body: content
         })
-        .then(res => res.json().then(data => ({ ...data, status: res.status })))
-        .then(({ status, message }) => {
-            viewStatus(message, status === 200 ? "green" : "red");
-        })
-        .catch(err => viewStatus(`Write file failed: ${err}`, "red"));
+            .then(res => res.json().then(data => ({ ...data, status: res.status })))
+            .then(({ status, message }) => {
+                viewStatus(message, status === 200 ? "green" : "red");
+            })
+            .catch(err => viewStatus(`Write file failed: ${err}`, "red"));
     }
 
     createProjectBtn.addEventListener("click", () => {
@@ -267,12 +431,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const projectName = document.getElementById("projectName").value;
         viewStatus(`Create project : ${projectType} ${projectName}`);
     });
-    cancelProjectBtn.addEventListener("click", function(){
+    cancelProjectBtn.addEventListener("click", function () {
         newProjectModal.style.display = "none";
         document.getElementById("projectName").value = "";
     });
 
-    
+
     createFileBtn.addEventListener("click", () => {
         const fileType = document.getElementById("fileType").value;
         const filePath = document.getElementById("filePath").value;
@@ -282,16 +446,28 @@ document.addEventListener("DOMContentLoaded", () => {
         newFileModal.style.display = "none";
         document.getElementById("filePath").value = "";
     });
-    
+
     // --- 休眠控制 ---
     function enterSleep() {
         sleepOverlay.style.display = "flex";
-        editor.contentEditable = "false";
+        if (window.editorInstance) {
+            window.editorInstance.updateOptions({ readOnly: true });
+        }
+        if (typeof term !== 'undefined') {
+            term.options.disableStdin = true;
+            term.options.cursorBlink = false;
+        }
     }
 
     function exitSleep() {
         sleepOverlay.style.display = "none";
-        editor.contentEditable = "true";
+        if (window.editorInstance) {
+            window.editorInstance.updateOptions({ readOnly: false });
+        }
+        if (typeof term !== 'undefined') {
+            term.options.disableStdin = false;
+            term.options.cursorBlink = true;
+        }
     }
 
     // --- 心跳机制 ---
@@ -299,17 +475,17 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/heartbeat")
             .then(res => res.text())
             .then(text => {
-                if(text.trim() === "OK") {
+                if (text.trim() === "OK") {
                     failCount = 0;
                     exitSleep();
                 } else {
                     failCount++;
-                    if(failCount >= maxFail) enterSleep();
+                    if (failCount >= maxFail) enterSleep();
                 }
             })
             .catch(err => {
                 failCount++;
-                if(failCount >= maxFail) enterSleep();
+                if (failCount >= maxFail) enterSleep();
             });
     }
 
