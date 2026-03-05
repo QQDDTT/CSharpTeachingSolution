@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 */obj/
 */*.sln
 
+
+.agent/
+.devcontainer/
