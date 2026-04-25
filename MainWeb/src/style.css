@@ -103,26 +103,90 @@ body {
     min-height: 0;
 }
 
-/* 编辑器侧边栏 */
+/* 编辑器侧边栏 (VS Code 风格) */
 #editorSidebar {
-    width: 200px;
-    min-width: 100px;
-    background: #eee;
+    width: 250px;
+    min-width: 150px;
+    background: #252526;
+    color: #cccccc;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     flex-shrink: 0;
+    font-size: 13px;
+    user-select: none;
+}
+
+.sidebar-header {
+    padding: 10px 15px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #bbbbbb;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#sidebarProjectContainer {
+    padding: 0 10px 10px 10px;
 }
 
 #projectSelect {
-    flex-shrink: 0;
-    padding: 5px;
+    width: 100%;
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #3c3c3c;
+    padding: 4px;
+    outline: none;
+    cursor: pointer;
 }
 
-#fileList {
+#projectSelect:focus {
+    border-color: #007acc;
+}
+
+#fileTree {
     flex: 1;
     overflow-y: auto;
-    border-top: 1px solid #ccc;
+}
+
+.tree-item {
+    padding: 4px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-item:hover {
+    background: #2a2d2e;
+}
+
+.tree-item.active {
+    background: #37373d;
+    color: #ffffff;
+}
+
+.tree-folder {
+    font-weight: bold;
+    color: #e1e1e1;
+}
+
+.tree-icon {
+    width: 16px;
+    text-align: center;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.tree-children {
+    display: block;
+}
+
+.collapsed + .tree-children {
+    display: none;
 }
 
 /* 拖动条 */

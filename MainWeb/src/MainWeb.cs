@@ -22,8 +22,8 @@ namespace MainWeb
     /// </summary>
     public class MainWeb
     {
-        // 最大并发用户数（仅限制非静态资源的请求）
-        private static readonly int MaxUsers = 1;
+        // 最大并发用户数
+        private static readonly int MaxUsers = 100;
 
         // 信号量用于限制最大并发用户
         // 注意：静态资源请求（CSS、JS、图片等）不受此限制
@@ -93,8 +93,10 @@ namespace MainWeb
                 {
                     if (!UserSemaphore.Wait(0))
                     {
+                        var errorData = ResponseData.Error("Server busy, maximum users reached.");
                         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                        await context.Response.WriteAsync("Server busy, maximum users reached.");
+                        context.Response.ContentType = "application/json; charset=utf-8";
+                        await context.Response.WriteAsync(errorData.ToJson());
                         return;
                     }
                     ActiveSessions.TryAdd(sessionId, true);
@@ -472,7 +474,25 @@ namespace MainWeb
         public ProjectManager()
         {
             string currentDir = Directory.GetCurrentDirectory();
-            ParentDir = Directory.GetParent(currentDir)?.FullName;
+            string? tempParent = currentDir;
+
+            // 逻辑：向上一级查找，直到找到包含 "Module." 或 "Web." 开头文件夹的目录作为 ParentDir
+            while (tempParent != null && !Directory.GetDirectories(tempParent).Any(d => {
+                var name = Path.GetFileName(d);
+                return name.StartsWith("Module.") || name.StartsWith("Web.");
+            }))
+            {
+                tempParent = Directory.GetParent(tempParent)?.FullName;
+            }
+
+            // 兜底：如果查找失败，显式指向工作空间根目录
+            if (tempParent == null || !Directory.Exists(tempParent))
+            {
+                tempParent = "/workspaces/CSharpTeachingSolution";
+            }
+
+            ParentDir = tempParent;
+
             Projects = new ConcurrentDictionary<string, string>(
                 Directory.GetDirectories(ParentDir)
                          .Where(d => Path.GetFileName(d).StartsWith("Module.") || Path.GetFileName(d).StartsWith("Web."))
@@ -523,7 +543,9 @@ namespace MainWeb
         {
             try
             {
-                string root = Projects[project];
+                if (!Projects.TryGetValue(project, out string root))
+                    return ResponseData.Error($"Project not found: {project}");
+
                 var files = Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories)
                                      .Where(p => !p.Contains("build") && !p.Contains("obj"))
                                      .ToDictionary(
