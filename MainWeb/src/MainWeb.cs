@@ -247,7 +247,18 @@ namespace MainWeb
             app.MapGet("/heartbeat", () => Results.Text("OK", "text/plain"));
 
             // 启动服务
-            app.Run(args[1]);
+            if (args != null && args.Length >= 2 && args[0] == "--urls")
+            {
+                app.Run(args[1]);
+            }
+            else if (args != null && args.Length >= 1 && (args[0].StartsWith("http://") || args[0].StartsWith("https://")))
+            {
+                app.Run(args[0]);
+            }
+            else
+            {
+                app.Run();
+            }
         }
 
         // ---------------- 文件加载 ----------------

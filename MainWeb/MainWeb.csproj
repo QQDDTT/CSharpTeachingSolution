@@ -8,7 +8,7 @@
     <OutputPath>build/</OutputPath>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <StartupObject>MainWeb.MainWeb</StartupObject>
-    <RunArguments>--urls http://0.0.0.0:8080</RunArguments>
+    <RunArguments>--urls http://0.0.0.0:5000</RunArguments>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '' == 'Debug' ">
