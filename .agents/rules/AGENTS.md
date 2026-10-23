@@ -15,3 +15,8 @@ description: "基础项目开发规范"
 
 ## 3. 设计规范要求
 - **全中文化**: 所有面向用户的日志、文档以及代码注释必须遵守中文规范（见全局约束）。
+
+## 4. 全域统一条款 (Workspace-wide Clauses)
+- **README 规范**: 遵循 Evopoiesis/docs/specs/07-readme-convention.md（根 README 仅作简介，一级目录 README 写内容与目录结构，二级及以下目录禁止 README）。
+- **GitHub 规范**: 遵循 Evopoiesis/docs/specs/08-github-conventions.md（同名仓库、main 分支、统一 SSH 远端）。
+- **密钥管理**: 遵循 Evopoiesis/docs/specs/09-secrets-management.md（本地凭据留在项目目录并由 .gitignore 防提交，仓库内严禁出现真实密钥）。

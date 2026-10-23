@@ -491,3 +491,36 @@ $RECYCLE.BIN/
 
 .agent/
 .devcontainer/
+# 放行说明文档 (Evopoiesis 追加)
+!/data/**/README.md
+!/data/README.md
+
+# ==============================================================================
+# 全域业务数据与大体积文件防护规则 (Evopoiesis Data Barrier)
+# ==============================================================================
+data/**
+!data/
+!data/README.md
+!data/**/README.md
+!data/**/.gitkeep
+vault/
+*.parquet
+*.feather
+*.arrow
+*.sqlite
+*.sqlite3
+*.db
+*.duckdb
+models/**/*.bin
+models/**/*.tar.gz
+models/**/*.zip
+models/**/*.pt
+models/**/*.pth
+models/**/*.onnx
+models/**/*.h5
+*.dng
+*.raw
+*.mp4
+*.mov
+*.avi
+*.mkv
