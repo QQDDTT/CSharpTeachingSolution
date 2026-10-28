@@ -1,4 +1,4 @@
-﻿# CSharpTeachingSolution 要件定义文档 (Requirements Specification)
+# CSharpTeachingSolution 要件定义文档 (Requirements Specification)
 
 > 项目名称：CSharpTeachingSolution  
 > 项目分类：待定(既有项目)  
@@ -35,8 +35,10 @@
 ---
 
 ## 4. 非功能要件 (Non-Functional Requirements)
-1. **运行环境约束**：严禁在本地宿主机（Surface Pro 9）安装外部语言运行时；云端算力调度交由 GCP 执行。
-2. **安全性与鉴权**：零本地自建登录页面与密码表，对齐 Cloudflare Access + Omni-Gate 零信任。
-3. **成本效益控制**：GCP 算力实例执行完毕必须自动销毁释放 ($0 闲置计费)。
-4. **语言与编码**：全中文化文档与注释，UTF-8 编码。
+1. **运行环境约束**：严禁在本地宿主机（Surface Pro 9）安装外部语言运行时；云端算力与构建调度交由 GCP 执行。
+2. **部署属性与服务定位**：本项目属于开源代码教学与架构演示范式，为**本地免生产云端部署（No Production Cloud Deployment）**工程，无需绑定公网域名或常驻微服务。
+3. **终端设备说明**：教学代码与 MainApp/MainWeb 专供 PC 开发者工作站及本地桌面浏览器调试，不提供面向移动端终端的生产服务。
+4. **安全性与鉴权**：零本地自建登录页面与密码表，教学示例遵循安全沙箱规范。
+5. **语言与编码**：全中文化文档与注释，UTF-8 编码。
+
 
